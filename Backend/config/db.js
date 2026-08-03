@@ -2,7 +2,13 @@ import mongoose from "mongoose";
 
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
+    const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
+
+    if (!mongoUri) {
+      throw new Error("No MongoDB URI found. Set MONGO_URI in your environment.");
+    }
+
+    await mongoose.connect(mongoUri);
 
     console.log("MongoDB Connected Successfully");
   } catch (error) {
