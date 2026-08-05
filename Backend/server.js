@@ -9,6 +9,9 @@ import emergencyRoutes from './routes/emergencyRoutes.js'
 import notificationRoutes from './routes/notificationRoutes.js'
 import hospitalRoutes from "./routes/hospitalRoutes.js";
 import inventoryRoutes from "./routes/inventoryRoutes.js";
+import dashboardRoutes from "./routes/DashboardRoutes.js";
+import ReportRoutes from "./routes/ReportRoutes.js";
+
 
 
 const __filename = fileURLToPath(import.meta.url)
@@ -26,6 +29,8 @@ app.use('/api/emergency', emergencyRoutes)
 app.use('/api/notification', notificationRoutes)
 app.use("/api/hospitals", hospitalRoutes);
 app.use("/api/inventory", inventoryRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/reports", ReportRoutes);
 
 
 // get yar oo tijaabo ah  server-ka haduu shaqaynayo intan hakuuso baxdo
