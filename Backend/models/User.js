@@ -13,7 +13,10 @@ const userSchema = new mongoose.Schema(
       required: true,
       unique: true,
       lowercase: true,
-      validate: [validator.isEmail, 'Please enter a valid email']
+      validate: {
+        validator: (value) => validator.isEmail(value),
+        message: 'Please enter a valid email'
+      },
     },
     password: {
       type: String,
@@ -22,8 +25,9 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      default: 'client',
-      enum: ['client', 'admin', 'doctor']
+      enum: ['donor', 'hospital', 'admin'],
+      default: 'donor',
+      required: true
     }
   },
   {

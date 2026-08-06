@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import validator from "validator";
 
 const hospitalSchema = new mongoose.Schema(
   {
@@ -17,10 +18,15 @@ const hospitalSchema = new mongoose.Schema(
     email: {
       type: String,
       required: true,
-      unique: true
+      unique: true,
+      validate: {
+        validator: (value) => validator.isEmail(value),
+        message: "Invalid email format"
+      }
     }
   },
   {
+    collection: "hospitals",
     timestamps: true
   }
 );

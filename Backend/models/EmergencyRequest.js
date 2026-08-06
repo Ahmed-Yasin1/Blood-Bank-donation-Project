@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import validator from "validator";
 
 const EmergencyRequestSchema = new mongoose.Schema(
   {
@@ -35,7 +36,10 @@ const EmergencyRequestSchema = new mongoose.Schema(
     phone: {
       type: String,
       trim: true,
-      match: [/^\d{7,15}$/, "Please provide a valid phone number"],
+      validate: {
+        validator: (value) => validator.isMobilePhone(value, "any"),
+        message: "Please provide a valid phone number"
+      }
     },
     status: {
       type: String,

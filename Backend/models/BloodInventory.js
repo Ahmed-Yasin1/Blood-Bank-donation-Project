@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import validator from "validator";
 
 const bloodInventorySchema = new mongoose.Schema(
   {
@@ -10,7 +11,9 @@ const bloodInventorySchema = new mongoose.Schema(
 
     bloodType: {
       type: String,
-      required: true
+      required: true,
+      enum: ["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-"],
+      uppercase: true
     },
 
     quantity: {
@@ -25,6 +28,7 @@ const bloodInventorySchema = new mongoose.Schema(
     }
   },
   {
+    collection: "blood_inventories",
     timestamps: true
   }
 );
