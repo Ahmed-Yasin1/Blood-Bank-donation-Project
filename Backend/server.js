@@ -11,6 +11,7 @@ import hospitalRoutes from "./routes/hospitalRoutes.js";
 import inventoryRoutes from "./routes/inventoryRoutes.js";
 import dashboardRoutes from "./routes/DashboardRoutes.js";
 import ReportRoutes from "./routes/ReportRoutes.js";
+import donorRoutes from './routes/donorRoutes.js'
 
 
 
@@ -31,6 +32,7 @@ app.use("/api/hospitals", hospitalRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/reports", ReportRoutes);
+app.use('/api/donors', donorRoutes)
 
 
 // get yar oo tijaabo ah  server-ka haduu shaqaynayo intan hakuuso baxdo
