@@ -1,10 +1,16 @@
 import mongoose from 'mongoose'
+import validator from 'validator'
+
 
 const donationHistorySchema = new mongoose.Schema(
   {
     date: { type: Date, default: Date.now },
     location: { type: String, trim: true },
-    status: { type: String, enum: ['Completed', 'Scheduled', 'Cancelled'], default: 'Completed' }
+    status: {
+      type: String,
+      enum: ['Completed', 'Scheduled', 'Cancelled', 'Pending'],
+      default: 'Pending'
+    }
   },
   { _id: false }
 )
@@ -12,10 +18,24 @@ const donationHistorySchema = new mongoose.Schema(
 const donorSchema = new mongoose.Schema(
   {
     fullName: { type: String, required: true, trim: true },
-    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+      validate: {
+        validator: (value) => validator.isEmail(value),
+        message: 'Please provide a valid email address'
+      }
+    },
     phone: { type: String, required: true, trim: true },
     age: { type: Number, required: true, min: 18, max: 65 },
-    bloodGroup: { type: String, required: true, enum: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] },
+    bloodGroup: {
+      type: String,
+      required: true,
+      enum: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
+    },
     address: { type: String, required: true, trim: true },
     city: { type: String, required: true, trim: true },
     lastDonationDate: { type: Date },
