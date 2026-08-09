@@ -4,23 +4,19 @@ const connectDB = async () => {
   try {
     const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI
 
+    if (!mongoUri) {
+      throw new Error('MONGODB_URI or MONGO_URI is not configured')
+    }
+
     await mongoose.connect(mongoUri, {
-      serverSelectionTimeoutMS: 10000
+      serverSelectionTimeoutMS: 15000,
+      connectTimeoutMS: 15000,
     })
 
-     console.log('MongoDB Connected Successfully ')
+    console.log(`MongoDB Atlas connected successfully: ${mongoose.connection.host}`)
   } catch (error) {
-    console.warn('Primary Atlas connection failed:', error.message)
-
-    try {
-      await mongoose.connect('mongodb://127.0.0.1:27017/bloodbank', {
-        serverSelectionTimeoutMS: 10000
-      })
-      console.log('MongoDB Connected Successfully ')
-    } catch (fallbackError) {
-      console.error('MongoDB Connection Failed:', fallbackError.message)
-      process.exit(1)
-    }
+    console.error('MongoDB Atlas connection failed:', error.message)
+    process.exit(1)
   }
 }
 
