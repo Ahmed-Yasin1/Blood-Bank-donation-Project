@@ -23,6 +23,14 @@ const hospitalSchema = new mongoose.Schema(
         validator: (value) => validator.isEmail(value),
         message: "Invalid email format"
       }
+    },
+    password: {
+      type: String,
+      required: true,
+      validate: {
+        validator: (value) => typeof value === 'string' && value.length >= 8,
+        message: "Password must be at least 8 characters long"
+      }
     }
   },
   {
