@@ -36,6 +36,8 @@ export default function Sidebar() {
     return null
   }
 
+  const isAdmin = currentUser?.role === 'admin'
+
   return (
     <aside className="bg-white border-end shadow-sm p-3" style={{ width: '270px', minHeight: 'calc(100vh - 56px)' }}>
       <div className="mb-4">
@@ -50,19 +52,21 @@ export default function Sidebar() {
         </div>
 
         <div className="list-group mt-3">
-          {navigationLinks.map((link) => (
-            <NavLink
-              key={link.to}
-              to={link.to}
-              className={({ isActive }) =>
-                `list-group-item list-group-item-action border-0 rounded-3 mb-1 ${
-                  isActive ? 'active bg-danger text-white' : 'text-dark'
-                }`
-              }
-            >
-              {link.label}
-            </NavLink>
-          ))}
+          {navigationLinks
+            .filter((link) => link.to !== 'users' || isAdmin)
+            .map((link) => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                className={({ isActive }) =>
+                  `list-group-item list-group-item-action border-0 rounded-3 mb-1 ${
+                    isActive ? 'active bg-danger text-white' : 'text-dark'
+                  }`
+                }
+              >
+                {link.label}
+              </NavLink>
+            ))}
         </div>
       </div>
 

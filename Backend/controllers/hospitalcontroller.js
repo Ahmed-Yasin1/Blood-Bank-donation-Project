@@ -2,6 +2,14 @@ import Hospital from '../models/Hospital.js'
 
 export const createHospital = async (req, res) => {
   try {
+    const { name, address, district, phone, email, password } = req.body
+
+    if (!name || !address || !district || !phone || !email || !password) {
+      return res.status(400).json({
+        message: 'Please provide name, address, district, phone, email, and password for the hospital',
+      })
+    }
+
     const hospital = await Hospital.create(req.body)
 
     res.status(201).json({
@@ -47,8 +55,21 @@ export const getHospitalById = async (req, res) => {
 
 export const updateHospital = async (req, res) => {
   try {
-    const hospital = await Hospital.findByIdAndUpdate(req.params.id, req.body, {
-      new: true
+    const { name, address, district, phone, email } = req.body
+    if (!name || !address || !district || !phone || !email) {
+      return res.status(400).json({
+        message: 'Please provide name, address, district, phone, and email for the hospital',
+      })
+    }
+
+    const updateData = { name, address, district, phone, email }
+    if (req.body.password) {
+      updateData.password = req.body.password
+    }
+
+    const hospital = await Hospital.findByIdAndUpdate(req.params.id, updateData, {
+      new: true,
+      runValidators: true,
     })
 
     res.json({

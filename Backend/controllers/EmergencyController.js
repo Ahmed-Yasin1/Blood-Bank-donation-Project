@@ -1,6 +1,7 @@
 import EmergencyRequest from "../models/EmergencyRequest.js";
 import Notification from "../models/Notification.js";
-import User from "../models/User.js";
+import Donor from "../models/Donor.js";
+import Hospital from "../models/Hospital.js";
 
 /**
  * Create a new emergency request
@@ -12,32 +13,81 @@ export const createEmergencyRequest = async (req, res) => {
     const { hospital, bloodType, unitsRequired, urgency, location, contactPerson, phone } = req.body;
 
     // Validate required fields
-    if (!hospital || !bloodType || !unitsRequired || !location) {
+    if (!hospital || !bloodType || !unitsRequired) {
       return res.status(400).json({
         success: false,
-        message: "Please provide all required fields: hospital, bloodType, unitsRequired, location",
+        message: "Please provide all required fields: hospital, bloodType, unitsRequired",
       });
     }
 
-    // Create emergency request
-    const emergencyRequest = await EmergencyRequest.create({
+    const hospitalDocument = await Hospital.findById(hospital);
+    if (!hospitalDocument) {
+      return res.status(404).json({
+        success: false,
+        message: "Selected hospital not found",
+      });
+    }
+
+    const requestLocation = location || hospitalDocument.district;
+    if (!requestLocation) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a valid district location for the emergency request",
+      });
+    }
+
+    const normalizedPhone = phone ? String(phone).trim().replace(/\s|[-()\.]/g, '') : undefined
+
+    let emergencyRequest = await EmergencyRequest.create({
       hospital,
       bloodType: bloodType.toUpperCase(),
       unitsRequired,
       urgency: urgency || "Medium",
-      location,
+      location: requestLocation,
       contactPerson,
-      phone,
+      phone: normalizedPhone,
       status: "Pending",
       matchedDonors: [],
     });
 
-    // Populate hospital information
-    await emergencyRequest.populate("hospital");
+    const matchedDonors = await Donor.find({
+      bloodGroup: emergencyRequest.bloodType,
+      district: emergencyRequest.location,
+      eligibilityStatus: true,
+    }).select("fullName email bloodGroup district eligibilityStatus");
+
+    const donorIds = matchedDonors.map((donor) => donor._id);
+    const updatedStatus = donorIds.length > 0 ? "Matched" : "Searching";
+
+    if (donorIds.length > 0) {
+      const notificationPromises = donorIds.map((donorId) =>
+        Notification.create({
+          recipient: donorId,
+          title: "Emergency Blood Request",
+          message: `Emergency blood request for ${emergencyRequest.bloodType}. Urgency: ${emergencyRequest.urgency}. Please respond if available.`,
+          type: "Emergency",
+          relatedEmergency: emergencyRequest._id,
+        })
+      );
+      await Promise.all(notificationPromises);
+    }
+
+    emergencyRequest = await EmergencyRequest.findByIdAndUpdate(
+      emergencyRequest._id,
+      {
+        matchedDonors: donorIds,
+        status: updatedStatus,
+      },
+      { new: true }
+    )
+      .populate("hospital")
+      .populate("matchedDonors", "fullName email bloodGroup district eligibilityStatus");
 
     return res.status(201).json({
       success: true,
-      message: "Emergency request created successfully",
+      message: donorIds.length > 0
+        ? `Emergency request created and ${donorIds.length} matching donors notified`
+        : "Emergency request created; no eligible donors found yet",
       data: emergencyRequest,
     });
   } catch (error) {
@@ -66,7 +116,7 @@ export const getAllEmergencyRequests = async (req, res) => {
 
     const emergencies = await EmergencyRequest.find(filter)
       .populate("hospital")
-      .populate("matchedDonors", "username email role")
+      .populate("matchedDonors", "fullName email bloodGroup district eligibilityStatus")
       .sort({ createdAt: -1 });
 
     return res.status(200).json({
@@ -95,7 +145,7 @@ export const getEmergencyById = async (req, res) => {
 
     const emergency = await EmergencyRequest.findById(id)
       .populate("hospital")
-      .populate("matchedDonors", "username email role");
+      .populate("matchedDonors", "fullName email bloodGroup district eligibilityStatus");
 
     if (!emergency) {
       return res.status(404).json({
@@ -142,7 +192,7 @@ export const updateEmergency = async (req, res) => {
       { new: true, runValidators: true }
     )
       .populate("hospital")
-      .populate("matchedDonors", "username email role");
+      .populate("matchedDonors", "fullName email bloodGroup district eligibilityStatus");
 
     if (!emergency) {
       return res.status(404).json({
@@ -225,7 +275,7 @@ export const updateEmergencyStatus = async (req, res) => {
       { new: true, runValidators: true }
     )
       .populate("hospital")
-      .populate("matchedDonors", "username email role");
+      .populate("matchedDonors", "fullName email bloodGroup district eligibilityStatus");
 
     if (!emergency) {
       return res.status(404).json({
@@ -272,42 +322,44 @@ export const smartMatching = async (req, res) => {
       });
     }
 
-    // Find potential donors matching blood type and location
-    // Note: Adjust query based on actual Donor model structure
-    const matchedDonors = await User.find({
-      role: "donor", // Assuming donor role exists
-      // Additional filters can be added based on Donor model structure
-    }).select("username email role");
+    const matchedDonors = await Donor.find({
+      bloodGroup: emergency.bloodType,
+      district: emergency.location,
+      eligibilityStatus: true,
+    }).select("fullName email bloodGroup district eligibilityStatus");
 
     if (matchedDonors.length === 0) {
+      const updatedEmergency = await EmergencyRequest.findByIdAndUpdate(
+        id,
+        { status: "Searching" },
+        { new: true }
+      ).populate("hospital");
+
       return res.status(200).json({
         success: true,
-        message: "No matching donors found",
-        data: [],
+        message: "No matching eligible donors found for this district and blood type",
+        data: updatedEmergency,
       });
     }
 
-    // Extract donor IDs
     const donorIds = matchedDonors.map((donor) => donor._id);
 
-    // Update emergency request with matched donors
     const updatedEmergency = await EmergencyRequest.findByIdAndUpdate(
       id,
       {
         matchedDonors: donorIds,
-        status: donorIds.length > 0 ? "Matched" : "Searching",
+        status: "Matched",
       },
       { new: true }
     )
       .populate("hospital")
-      .populate("matchedDonors", "username email role");
+      .populate("matchedDonors", "fullName email bloodGroup district eligibilityStatus");
 
-    // Send notifications to matched donors
     const notificationPromises = donorIds.map((donorId) =>
       Notification.create({
         recipient: donorId,
         title: "Emergency Blood Request",
-        message: `Emergency blood request for ${emergency.bloodType} type. Urgency: ${emergency.urgency}`,
+        message: `Emergency blood request for ${emergency.bloodType}. Urgency: ${emergency.urgency}. Please respond if available.`,
         type: "Emergency",
         relatedEmergency: id,
       })

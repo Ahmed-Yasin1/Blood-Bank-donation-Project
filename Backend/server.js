@@ -2,8 +2,10 @@ import express from 'express'
 import dotenv from 'dotenv'
 import cors from 'cors'
 import path from 'path'
+import bcrypt from 'bcrypt'
 import { fileURLToPath } from 'url'
 import connectDB from './config/db.js'
+import User from './models/User.js'
 import authRoutes from './routes/authRoutes.js'
 import emergencyRoutes from './routes/emergencyRoutes.js'
 import notificationRoutes from './routes/notificationRoutes.js'
@@ -22,6 +24,30 @@ dotenv.config({ path: path.resolve(__dirname, '.env') })
 await connectDB()
 
 const app = express()
+
+const seedAdminUser = async () => {
+  const adminEmail = 'admin@bloodbank.local'
+  const existingAdmin = await User.findOne({ email: adminEmail })
+
+  if (!existingAdmin) {
+    const password = 'Admin123'
+    const hashedPassword = await bcrypt.hash(password, 10)
+    await User.create({
+      username: 'admin',
+      email: adminEmail,
+      password: hashedPassword,
+      role: 'admin',
+    })
+    console.log(`Seeded admin user: ${adminEmail}`)
+  }
+}
+
+try {
+  await connectDB()
+  await seedAdminUser()
+} catch (error) {
+  console.warn('Database connection skipped at startup:', error.message)
+}
 
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',

@@ -28,7 +28,7 @@ export const sendNotification = async (req, res) => {
     });
 
     // Populate recipient details
-    await notification.populate("recipient", "username email role");
+    await notification.populate("recipient", "fullName email bloodGroup district eligibilityStatus");
 
     return res.status(201).json({
       success: true,
@@ -54,6 +54,18 @@ export const getUserNotifications = async (req, res) => {
     const { userId } = req.params;
     const { isRead } = req.query;
 
+    // authorization: donors can only access their own notifications
+    if (req.user && req.user.role === 'donor') {
+      // find donor by id and ensure it belongs to this logged-in user
+      const donor = await Notification.db.model('Donor').findById(userId)
+      if (!donor) {
+        return res.status(404).json({ success: false, message: 'Donor not found' })
+      }
+      if (!donor.user || donor.user.toString() !== req.user.id.toString()) {
+        return res.status(403).json({ success: false, message: 'Access denied' })
+      }
+    }
+
     // Build filter
     let filter = { recipient: userId };
     if (isRead !== undefined) {
@@ -62,7 +74,7 @@ export const getUserNotifications = async (req, res) => {
 
     // Fetch notifications
     const notifications = await Notification.find(filter)
-      .populate("recipient", "username email role")
+      .populate("recipient", "fullName email bloodGroup district eligibilityStatus")
       .populate("relatedEmergency", "bloodType urgency status location")
       .sort({ createdAt: -1 });
 
@@ -103,7 +115,7 @@ export const markAsRead = async (req, res) => {
       { isRead: true },
       { new: true }
     )
-      .populate("recipient", "username email role")
+      .populate("recipient", "fullName email bloodGroup district eligibilityStatus")
       .populate("relatedEmergency", "bloodType urgency status location");
 
     if (!notification) {
@@ -144,7 +156,7 @@ export const markAllAsRead = async (req, res) => {
 
     // Fetch updated notifications
     const notifications = await Notification.find({ recipient: userId })
-      .populate("recipient", "username email role")
+      .populate("recipient", "fullName email bloodGroup district eligibilityStatus")
       .populate("relatedEmergency", "bloodType urgency status location")
       .sort({ createdAt: -1 });
 
