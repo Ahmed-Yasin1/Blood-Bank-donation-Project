@@ -8,22 +8,34 @@ export const generateSystemReport = async (req, res) => {
        
         const totalDonors = await User.countDocuments({ role: 'donor' });
         const totalRequests = await EmergencyRequest.countDocuments();
+        const pendingRequests = await EmergencyRequest.countDocuments({ status: 'Pending' });
         const totalHospitals = await Hospital.countDocuments();
-        
-        const inventoryItems = await BloodInventory.find();
-        const totalBloodUnitsAvailable = inventoryItems.reduce((acc, item) => acc + (item.units || 0), 0);
 
-       
+        const inventoryItems = await BloodInventory.find();
+        const totalUnits = inventoryItems.reduce((acc, item) => acc + (item.quantity || 0), 0);
+
+        // aggregate by blood type
+        const groupMap = inventoryItems.reduce((map, item) => {
+            const type = item.bloodType || item.bloodType?.toUpperCase?.() || 'UNKNOWN'
+            map[type] = (map[type] || 0) + (item.quantity || 0)
+            return map
+        }, {})
+
+        const bloodGroupStats = Object.keys(groupMap).map((bloodGroup) => ({ bloodGroup, units: groupMap[bloodGroup] }))
+
+        const recentRequests = await EmergencyRequest.find().sort({ createdAt: -1 }).limit(6).populate('hospital', 'name location')
+
         const reportData = {
             generatedAt: new Date(),
-            summary: {
-                totalDonors,
-                totalRequests,
-                totalHospitals,
-                totalBloodUnitsAvailable,
-                inventoryDetails: inventoryItems
-            }
-        };
+            totalDonors,
+            totalRequests,
+            pendingRequests,
+            totalHospitals,
+            totalUnits,
+            bloodGroupStats,
+            inventoryDetails: inventoryItems,
+            recentRequests,
+        }
 
         return res.status(200).json({
             success: true,

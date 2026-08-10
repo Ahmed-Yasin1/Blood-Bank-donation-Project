@@ -5,7 +5,7 @@ const NotificationSchema = new mongoose.Schema(
   {
     recipient: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Donor",
       required: [true, "Recipient is required"],
     },
     title: {

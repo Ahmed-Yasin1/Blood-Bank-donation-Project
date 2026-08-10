@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import validator from "validator";
+import { DISTRICTS } from '../config/districts.js'
 
 const EmergencyRequestSchema = new mongoose.Schema(
   {
@@ -28,6 +29,8 @@ const EmergencyRequestSchema = new mongoose.Schema(
     location: {
       type: String,
       required: [true, "Location is required"],
+      enum: DISTRICTS,
+      trim: true,
     },
     contactPerson: {
       type: String,
@@ -37,7 +40,11 @@ const EmergencyRequestSchema = new mongoose.Schema(
       type: String,
       trim: true,
       validate: {
-        validator: (value) => validator.isMobilePhone(value, "any"),
+        validator: (value) => {
+          if (!value) return true
+          const normalized = String(value).trim().replace(/\s|[-()\.]/g, '')
+          return validator.isMobilePhone(normalized, 'any') || /^\d{3,}$/.test(normalized)
+        },
         message: "Please provide a valid phone number"
       }
     },
@@ -49,7 +56,7 @@ const EmergencyRequestSchema = new mongoose.Schema(
     matchedDonors: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        ref: "Donor",
       },
     ],
   },

@@ -6,6 +6,7 @@ import {
   markAllAsRead,
   deleteNotification,
 } from "../controllers/NotificationController.js";
+import { protect } from '../middleware/authMiddleware.js'
 
 const router = express.Router();
 
@@ -17,23 +18,23 @@ const router = express.Router();
 // POST /api/notification - Send notification
 // Protected: Admin/System only
 // Body: { recipient, title, message, type?, relatedEmergency? }
-router.post("/", sendNotification);
+router.post("/", protect, sendNotification);
 
 // GET /api/notification/user/:userId - Get all notifications for user
 // Protected: User/Admin
 // Query params: isRead (optional)
-router.get("/user/:userId", getUserNotifications);
+router.get("/user/:userId", protect, getUserNotifications);
 
 // PATCH /api/notification/:id/read - Mark notification as read
 // Protected: User/Admin
-router.patch("/:id/read", markAsRead);
+router.patch("/:id/read", protect, markAsRead);
 
 // PATCH /api/notification/read-all/:userId - Mark all user notifications as read
 // Protected: User/Admin
-router.patch("/read-all/:userId", markAllAsRead);
+router.patch("/read-all/:userId", protect, markAllAsRead);
 
 // DELETE /api/notification/:id - Delete notification
 // Protected: User/Admin
-router.delete("/:id", deleteNotification);
+router.delete("/:id", protect, deleteNotification);
 
 export default router;
