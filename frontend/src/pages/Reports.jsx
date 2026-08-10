@@ -10,14 +10,13 @@ function Reports() {
     // Fetch analytics/reports data from your backend API
     fetch('http://localhost:3000/api/reports') // Adjust endpoint if your backend route differs
       .then((res) => {
-        if (!res.ok) {
-          throw new Error('Failed to fetch system reports.');
-        }
-        return res.json();
+        if (!res.ok) throw new Error('Failed to fetch system reports.')
+        return res.json()
       })
-      .then((data) => {
-        setReportData(data);
-        setLoading(false);
+      .then((payload) => {
+        // backend returns { success, message, data }
+        setReportData(payload.data || payload)
+        setLoading(false)
       })
       .catch((err) => {
         setError(err.message);
@@ -44,15 +43,15 @@ function Reports() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '30px' }}>
         <div style={{ background: '#fff', padding: '20px', borderRadius: '8px', borderLeft: '5px solid var(--burgundy, #6b1d2f)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
           <h3 style={{ fontSize: '14px', color: '#888', margin: '0 0 8px 0' }}>Total Donors</h3>
-          <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{reportData?.totalDonors || 0}</p>
+          <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{reportData?.totalDonors ?? 0}</p>
         </div>
         <div style={{ background: '#fff', padding: '20px', borderRadius: '8px', borderLeft: '5px solid var(--burgundy, #6b1d2f)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
           <h3 style={{ fontSize: '14px', color: '#888', margin: '0 0 8px 0' }}>Total Blood Units Available</h3>
-          <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{reportData?.totalUnits || 0}</p>
+          <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{reportData?.totalUnits ?? 0}</p>
         </div>
         <div style={{ background: '#fff', padding: '20px', borderRadius: '8px', borderLeft: '5px solid var(--burgundy, #6b1d2f)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
           <h3 style={{ fontSize: '14px', color: '#888', margin: '0 0 8px 0' }}>Pending Requests</h3>
-          <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{reportData?.pendingRequests || 0}</p>
+          <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{reportData?.pendingRequests ?? 0}</p>
         </div>
       </div>
 
@@ -93,6 +92,23 @@ function Reports() {
             )}
           </tbody>
         </table>
+        
+          {/* Recent requests */}
+          <div style={{ marginTop: '20px' }}>
+            <h3 style={{ fontSize: '18px', color: 'var(--burgundy, #6b1d2f)' }}>Recent Emergency Requests</h3>
+            {reportData?.recentRequests?.length > 0 ? (
+              <ul style={{ listStyle: 'none', padding: 0 }}>
+                {reportData.recentRequests.map((req) => (
+                  <li key={req._id} style={{ padding: '10px 0', borderBottom: '1px dashed #eee' }}>
+                    <strong>{req.bloodType}</strong> • {req.unitsRequired} units • <span style={{ color: '#666' }}>{req.status}</span>
+                    <div style={{ fontSize: '13px', color: '#888' }}>{req.hospital?.name || 'Unknown hospital'} — {new Date(req.createdAt).toLocaleString()}</div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p style={{ color: '#888' }}>No recent requests.</p>
+            )}
+          </div>
       </div>
     </div>
   );
