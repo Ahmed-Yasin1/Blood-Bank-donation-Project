@@ -1,4 +1,4 @@
-import { getProfile, login, register } from '../api/AuthApi'
+import { getProfile, login, register, resetPassword as resetPasswordRequest } from '../api/AuthApi'
 
 export const loginUser = async (credentials) => {
   const { data } = await login(credentials)
@@ -8,6 +8,7 @@ export const loginUser = async (credentials) => {
 }
 
 export const registerUser = async (user) => (await register(user)).data
+export const resetPassword = async (payload) => (await resetPasswordRequest(payload)).data
 export const getCurrentUser = async () => (await getProfile()).data.user
 
 export const logoutUser = () => {

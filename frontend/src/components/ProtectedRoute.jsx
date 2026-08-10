@@ -11,8 +11,8 @@ export default function ProtectedRoute({ children, redirectTo = '/login' }) {
 		}
 	}, [isAuthenticated, isLoading, redirectTo])
 
-	if (isLoading || !isAuthenticated) {
-		return <Loading message={isLoading ? 'Checking your session...' : 'Redirecting...'} />
+	if (isLoading) {
+		return <Loading message="Checking your session..." />
 	}
 
 	return children
