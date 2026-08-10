@@ -25,7 +25,9 @@ await connectDB()
 
 const app = express()
 
-app.use(cors())
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+}))
 app.use(express.json())
 app.use('/api/auth', authRoutes)
 app.use('/api/emergency', emergencyRoutes)
@@ -38,6 +40,10 @@ app.use('/api/donors', donorRoutes)
 
 
 // get yar oo tijaabo ah  server-ka haduu shaqaynayo intan hakuuso baxdo
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ message: 'Blood bank API is connected' })
+})
+
 app.get('/', (req,res) => {
     res.send('Blood bank server is ok');
 })
