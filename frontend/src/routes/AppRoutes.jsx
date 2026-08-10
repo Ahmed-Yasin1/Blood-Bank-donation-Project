@@ -1,59 +1,54 @@
-import { BrowserRouter, Navigate, NavLink, Route, Routes } from 'react-router-dom'
-import PrivateRoutes from './PrivateRoutes'
+import { Navigate, Route, Routes } from 'react-router-dom'
+import MainLayout from '../components/MainLayout'
+import Dashboard from '../pages/Dashboard'
+import Donors from '../pages/Donors'
+import EmergencyRequests from '../pages/EmergencyRequests'
+import Hospitals from '../pages/Hospitals'
+import Inventory from '../pages/Inventory'
+import Notifications from '../pages/Notifications'
+import Reports from '../pages/Reports'
+import Login from '../pages/Login'
 
 const privatePages = [
-	{ path: 'dashboard', label: 'Dashboard' },
-	{ path: 'donors', label: 'Donors' },
-	{ path: 'hospitals', label: 'Hospitals' },
-	{ path: 'inventory', label: 'Inventory' },
-	{ path: 'emergency-requests', label: 'Emergency Requests' },
-	{ path: 'notifications', label: 'Notifications' },
-	{ path: 'reports', label: 'Reports' },
+	{ path: 'dashboard', label: 'Dashboard', element: <Dashboard /> },
+	{ path: 'donors', label: 'Donors', element: <Donors /> },
+	{ path: 'emergency-requests', label: 'Emergency Requests', element: <EmergencyRequests /> },
+	{ path: 'hospitals', label: 'Hospitals', element: <Hospitals /> },
+	{ path: 'inventory', label: 'Inventory', element: <Inventory /> },
+	{ path: 'notifications', label: 'Notifications', element: <Notifications /> },
+	{ path: 'reports', label: 'Reports', element: <Reports /> },
+	{ path: 'users', label: 'Users', element: <Dashboard /> },
+	{ path: 'aqurxi', label: 'Aad U Qurxi', element: <Dashboard /> },
 ]
 
 function RouteScreen({ title, isPublic = false }) {
 	return (
-		<main style={{ padding: '2rem', fontFamily: 'Arial, sans-serif' }}>
-			<h1>{title}</h1>
-			{isPublic ? (
-				<p>Sign in to access the blood management system.</p>
-			) : (
-				<>
-					<p>This section is ready for its management tools.</p>
-					<nav aria-label="Application navigation">
-						{privatePages.map((page) => (
-							<NavLink
-								key={page.path}
-								to={`/${page.path}`}
-								style={{ display: 'block', marginTop: '0.5rem' }}
-							>
-								{page.label}
-							</NavLink>
-						))}
-					</nav>
-				</>
-			)}
+		<main className="container-fluid py-4">
+			<div className="card shadow-sm border-0">
+				<div className="card-body">
+					<h1 className="h3 mb-3 text-danger">{title}</h1>
+					{isPublic ? (
+						<p className="text-muted">Sign in to access the blood management system.</p>
+					) : (
+						<p className="text-muted">This section is ready for its management tools.</p>
+					)}
+				</div>
+			</div>
 		</main>
 	)
 }
 
 export default function AppRoutes() {
 	return (
-		<BrowserRouter>
-			<Routes>
-				<Route path="/login" element={<RouteScreen title="Sign in" isPublic />} />
-				<Route element={<PrivateRoutes />}>
-					<Route index element={<Navigate to="/dashboard" replace />} />
-					{privatePages.map((page) => (
-						<Route
-							key={page.path}
-							path={page.path}
-							element={<RouteScreen title={page.label} />}
-						/>
-					))}
-				</Route>
-				<Route path="*" element={<Navigate to="/" replace />} />
-			</Routes>
-		</BrowserRouter>
+		<Routes>
+			<Route path="/login" element={<Login />} />
+			<Route element={<MainLayout />}>
+				<Route index element={<Navigate to="/dashboard" replace />} />
+				{privatePages.map((page) => (
+					<Route key={page.path} path={page.path} element={page.element} />
+				))}
+			</Route>
+			<Route path="*" element={<Navigate to="/" replace />} />
+		</Routes>
 	)
 }
