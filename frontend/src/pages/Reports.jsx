@@ -1,28 +1,51 @@
 import React, { useState, useEffect } from 'react';
+import apiClient from '../api/ApiClient';
+import useAuth from '../hooks/useAuth';
 import '../index.css'; // Uses your global styles
 
 function Reports() {
+  const { user } = useAuth()
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  const loadReports = async (fromDate = '', toDate = '', params = {}) => {
+    try {
+      setLoading(true)
+      const response = await apiClient.get('/reports', {
+        params: {
+          startDate: fromDate || undefined,
+          endDate: toDate || undefined,
+          ...params,
+        },
+      })
+      setReportData(response?.data?.data || response?.data || null)
+      setError(null)
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Failed to fetch system reports.')
+    } finally {
+      setLoading(false)
+    }
+  };
 
   useEffect(() => {
-    // Fetch analytics/reports data from your backend API
-    fetch('http://localhost:3000/api/reports') // Adjust endpoint if your backend route differs
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch system reports.')
-        return res.json()
-      })
-      .then((payload) => {
-        // backend returns { success, message, data }
-        setReportData(payload.data || payload)
-        setLoading(false)
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
-  }, []);
+    const params = {}
+    if (user?.role === 'hospital') {
+      params.hospitalId = user.id
+    }
+    loadReports(startDate, endDate, params)
+  }, [user])
+
+  const handleFilter = (e) => {
+    e.preventDefault();
+    const params = {}
+    if (user?.role === 'hospital') {
+      params.hospitalId = user.id
+    }
+    loadReports(startDate, endDate, params);
+  };
 
   if (loading) {
     return <div className="loading-state">Loading system reports...</div>;
@@ -38,6 +61,20 @@ function Reports() {
         <h1 style={{ color: 'var(--burgundy, #6b1d2f)', fontSize: '28px', fontWeight: 'bold' }}>System Reports & Analytics</h1>
         <p style={{ color: '#666' }}>Overview of blood donation metrics, inventory levels, and donor activities.</p>
       </header>
+
+      <form onSubmit={handleFilter} style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '20px' }}>
+        <div>
+          <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Start date</label>
+          <input className="form-control" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>End date</label>
+          <input className="form-control" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+        </div>
+        <div style={{ alignSelf: 'end' }}>
+          <button className="btn btn-danger" type="submit">Filter</button>
+        </div>
+      </form>
 
       {/* Summary Stat Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '30px' }}>
@@ -101,7 +138,7 @@ function Reports() {
                 {reportData.recentRequests.map((req) => (
                   <li key={req._id} style={{ padding: '10px 0', borderBottom: '1px dashed #eee' }}>
                     <strong>{req.bloodType}</strong> • {req.unitsRequired} units • <span style={{ color: '#666' }}>{req.status}</span>
-                    <div style={{ fontSize: '13px', color: '#888' }}>{req.hospital?.name || 'Unknown hospital'} — {new Date(req.createdAt).toLocaleString()}</div>
+                    <div style={{ fontSize: '13px', color: '#888' }}>{req.hospital?.name || req.hospital?.username || req.hospital?.email || 'Unknown hospital'} — {new Date(req.createdAt).toLocaleString()}</div>
                   </li>
                 ))}
               </ul>

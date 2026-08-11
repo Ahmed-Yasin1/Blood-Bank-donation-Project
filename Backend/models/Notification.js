@@ -8,6 +8,11 @@ const NotificationSchema = new mongoose.Schema(
       ref: "Donor",
       required: [true, "Recipient is required"],
     },
+    sender: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Hospital",
+      required: false,
+    },
     title: {
       type: String,
       required: [true, "Notification title is required"],

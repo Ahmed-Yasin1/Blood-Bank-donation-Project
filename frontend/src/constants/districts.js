@@ -7,5 +7,6 @@ export const DISTRICTS = [
   '31-May',
   'Axmed-Dhagax',
   'Maxamuud-Haybe',
-  'Maxamed-Mooge'
+  'Maxamed-Mooge',
+  'Hargeisa'
 ]

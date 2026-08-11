@@ -36,7 +36,7 @@ export const protect = async (req, res, next) => {
     req.user = {
       id: user._id,
       email: user.email,
-      role: user.role,
+      role: decoded.userType === 'Hospital' ? 'hospital' : user.role,
       userType: decoded.userType || 'User'
     }
 

@@ -1,6 +1,35 @@
 import Donor from '../models/Donor.js'
 import User from '../models/User.js'
+import Hospital from '../models/Hospital.js'
 import bcrypt from 'bcrypt'
+
+const getHospitalProfile = async (userId) => {
+  const hospital = await Hospital.findById(userId)
+  if (hospital) return hospital
+
+  const userHospital = await User.findById(userId).select('username email role district')
+  if (userHospital && userHospital.role === 'hospital') {
+    return {
+      _id: userHospital._id,
+      name: userHospital.username || userHospital.email,
+      district: userHospital.district,
+    }
+  }
+
+  return null
+}
+
+const verifyHospitalAccess = async (userId, donor) => {
+  const hospital = await getHospitalProfile(userId)
+  if (!hospital || (hospital.district && donor.district !== hospital.district)) {
+    return null
+  }
+  return hospital
+}
+
+const getDonorForUser = async (userId) => {
+  return Donor.findOne({ user: userId })
+}
 
 const calculateEligibility = (donor) => {
   const ageEligible = donor.age >= 18 && donor.age <= 65
@@ -26,11 +55,21 @@ export const createDonor = async (req, res) => {
   try {
     const { fullName, email, phone, age, bloodGroup, address, city, district, lastDonationDate, medicalNotes, password } = req.body
 
-    if (!fullName || !email || !phone || !age || !bloodGroup || !address || !city || !district) {
+    let hospitalDistrict = district
+    if (req.user?.role === 'hospital') {
+      const hospital = await getHospitalProfile(req.user.id)
+      if (!hospital) {
+        return res.status(403).json({ success: false, error: 'Hospital account not found' })
+      }
+      if (hospital.district) {
+        hospitalDistrict = hospital.district
+      }
+    }
+
+    if (!fullName || !email || !phone || !age || !bloodGroup || !address || !city || !hospitalDistrict) {
       return res.status(400).json({ success: false, error: 'Please provide all required donor fields' })
     }
 
-    // if a password is provided, we'll create an associated User account for donor login
     let createdUser = null
     if (password) {
       const existingUser = await User.findOne({ email })
@@ -49,7 +88,7 @@ export const createDonor = async (req, res) => {
       bloodGroup,
       address,
       city,
-      district,
+      district: hospitalDistrict,
       lastDonationDate,
       medicalNotes,
       user: createdUser ? createdUser._id : undefined,
@@ -72,9 +111,25 @@ export const updateDonor = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Donor not found' })
     }
 
+    if (req.user?.role === 'donor') {
+      const donorRecord = await getDonorForUser(req.user.id)
+      if (!donorRecord || donorRecord._id.toString() !== donor._id.toString()) {
+        return res.status(403).json({ success: false, error: 'Access denied' })
+      }
+    }
+
+    if (req.user?.role === 'hospital') {
+      const hospital = await getHospitalProfile(req.user.id)
+      if (!hospital || (hospital.district && donor.district !== hospital.district)) {
+        return res.status(403).json({ success: false, error: 'Access denied' })
+      }
+      if (hospital.district && req.body.district && req.body.district !== hospital.district) {
+        return res.status(403).json({ success: false, error: 'Cannot change donor district' })
+      }
+    }
+
     const { password, email, fullName } = req.body
 
-    // If password provided, ensure linked User exists or is created/updated
     if (password) {
       if (donor.user) {
         const user = await User.findById(donor.user)
@@ -85,7 +140,6 @@ export const updateDonor = async (req, res) => {
           await user.save()
         }
       } else {
-        // create linked user for donor
         const existingUser = await User.findOne({ email: email || donor.email })
         if (existingUser) {
           return res.status(400).json({ success: false, error: 'Email already exists as a user' })
@@ -96,7 +150,6 @@ export const updateDonor = async (req, res) => {
         donor.user = createdUser._id
       }
     } else if (donor.user && (email || fullName)) {
-      // sync non-password profile changes to linked user
       const user = await User.findById(donor.user)
       if (user) {
         if (email) user.email = email
@@ -122,12 +175,17 @@ export const deleteDonor = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Donor not found' })
     }
 
-    // remove linked user account if exists
+    if (req.user?.role === 'hospital') {
+      const hospital = await verifyHospitalAccess(req.user.id, donor)
+      if (!hospital) {
+        return res.status(403).json({ success: false, error: 'Access denied' })
+      }
+    }
+
     if (donor.user) {
       try {
         await User.findByIdAndDelete(donor.user)
       } catch (err) {
-        // continue even if user delete fails
         console.warn('Failed to delete linked user for donor', donor._id, err.message)
       }
     }
@@ -135,6 +193,32 @@ export const deleteDonor = async (req, res) => {
     await donor.remove()
 
     return res.status(200).json({ success: true, message: 'Donor deleted successfully' })
+  } catch (error) {
+    return res.status(400).json({ success: false, error: error.message })
+  }
+}
+
+export const getDonorById = async (req, res) => {
+  try {
+    const donor = await Donor.findById(req.params.id)
+
+    if (!donor) {
+      return res.status(404).json({ success: false, error: 'Donor not found' })
+    }
+
+    if (req.user?.role === 'donor') {
+      const donorRecord = await getDonorForUser(req.user.id)
+      if (!donorRecord || donorRecord._id.toString() !== donor._id.toString()) {
+        return res.status(403).json({ success: false, error: 'Access denied' })
+      }
+    } else if (req.user?.role === 'hospital') {
+      const hospital = await verifyHospitalAccess(req.user.id, donor)
+      if (!hospital) {
+        return res.status(403).json({ success: false, error: 'Access denied' })
+      }
+    }
+
+    return res.status(200).json({ success: true, donor })
   } catch (error) {
     return res.status(400).json({ success: false, error: error.message })
   }
@@ -154,6 +238,31 @@ export const searchDonors = async (req, res) => {
         }
       : {}
 
+    if (req.user?.role === 'donor') {
+      const donor = await getDonorForUser(req.user.id)
+      if (!donor) {
+        return res.status(200).json({ success: true, count: 0, donors: [] })
+      }
+
+      const matches = !query || [donor.fullName, donor.email, donor.city, donor.bloodGroup]
+        .filter(Boolean)
+        .some((value) => new RegExp(query, 'i').test(value))
+
+      if (!matches) {
+        return res.status(200).json({ success: true, count: 0, donors: [] })
+      }
+
+      return res.status(200).json({ success: true, count: 1, donors: [donor] })
+    }
+
+    const hospital = req.user?.role === 'hospital'
+      ? await getHospitalProfile(req.user.id)
+      : null
+
+    if (hospital?.district) {
+      searchFilter.district = hospital.district
+    }
+
     const donors = await Donor.find(searchFilter).sort({ createdAt: -1 })
     return res.status(200).json({ success: true, count: donors.length, donors })
   } catch (error) {
@@ -167,6 +276,13 @@ export const getDonorEligibility = async (req, res) => {
 
     if (!donor) {
       return res.status(404).json({ success: false, error: 'Donor not found' })
+    }
+
+    if (req.user?.role === 'hospital') {
+      const hospital = await verifyHospitalAccess(req.user.id, donor)
+      if (!hospital) {
+        return res.status(403).json({ success: false, error: 'Access denied' })
+      }
     }
 
     const eligibility = calculateEligibility(donor)
@@ -187,6 +303,13 @@ export const addDonationRecord = async (req, res) => {
     const donor = await Donor.findById(req.params.id)
     if (!donor) {
       return res.status(404).json({ success: false, error: 'Donor not found' })
+    }
+
+    if (req.user?.role === 'hospital') {
+      const hospital = await verifyHospitalAccess(req.user.id, donor)
+      if (!hospital) {
+        return res.status(403).json({ success: false, error: 'Access denied' })
+      }
     }
 
     const eligibility = calculateEligibility(donor)
@@ -224,6 +347,13 @@ export const updateDonationRecord = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Donor not found' })
     }
 
+    if (req.user?.role === 'hospital') {
+      const hospital = await verifyHospitalAccess(req.user.id, donor)
+      if (!hospital) {
+        return res.status(403).json({ success: false, error: 'Access denied' })
+      }
+    }
+
     const record = donor.donationHistory.id(donationId)
     if (!record) {
       return res.status(404).json({ success: false, error: 'Donation record not found' })
@@ -256,6 +386,13 @@ export const deleteDonationRecord = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Donor not found' })
     }
 
+    if (req.user?.role === 'hospital') {
+      const hospital = await verifyHospitalAccess(req.user.id, donor)
+      if (!hospital) {
+        return res.status(403).json({ success: false, error: 'Access denied' })
+      }
+    }
+
     const record = donor.donationHistory.id(donationId)
     if (!record) {
       return res.status(404).json({ success: false, error: 'Donation record not found' })
@@ -285,6 +422,18 @@ export const getDonationHistory = async (req, res) => {
 
     if (!donor) {
       return res.status(404).json({ success: false, error: 'Donor not found' })
+    }
+
+    if (req.user?.role === 'donor') {
+      const donorRecord = await getDonorForUser(req.user.id)
+      if (!donorRecord || donorRecord._id.toString() !== donor._id.toString()) {
+        return res.status(403).json({ success: false, error: 'Access denied' })
+      }
+    } else if (req.user?.role === 'hospital') {
+      const hospital = await verifyHospitalAccess(req.user.id, donor)
+      if (!hospital) {
+        return res.status(403).json({ success: false, error: 'Access denied' })
+      }
     }
 
     return res.status(200).json({ success: true, donorId: donor._id, donationHistory: donor.donationHistory || [] })

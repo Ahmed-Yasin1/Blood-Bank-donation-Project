@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { DISTRICTS } from '../constants/districts'
 import {
   createDonor,
@@ -48,6 +48,22 @@ export default function Donors() {
   const [selectedDonor, setSelectedDonor] = useState(null)
   const [donationHistory, setDonationHistory] = useState([])
   const [historyLoading, setHistoryLoading] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [bloodGroupFilter, setBloodGroupFilter] = useState('')
+
+  const filteredDonors = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase()
+
+    return donors.filter((donor) => {
+      const matchesQuery = !query || [donor.fullName, donor.phone, donor.city, donor.district]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query))
+
+      const matchesBloodGroup = !bloodGroupFilter || donor.bloodGroup === bloodGroupFilter
+
+      return matchesQuery && matchesBloodGroup
+    })
+  }, [donors, searchTerm, bloodGroupFilter])
 
   const loadDonors = async () => {
     try {
@@ -290,6 +306,10 @@ export default function Donors() {
                 <label className="form-label">Email</label>
                 <input className="form-control" type="email" name="email" value={form.email} onChange={handleChange} required />
               </div>
+              <div className="col-md-6">
+                <label className="form-label">Password (for donor login)</label>
+                <input className="form-control" type="password" name="password" value={form.password || ''} onChange={handleChange} placeholder={editingDonor ? 'Leave blank to keep current' : 'Enter password'} />
+              </div>
               <div className="col-md-4">
                 <label className="form-label">Phone</label>
                 <input className="form-control" name="phone" value={form.phone} onChange={handleChange} required />
@@ -342,6 +362,26 @@ export default function Donors() {
 
           {error && <div className="alert alert-danger py-2">{error}</div>}
 
+          <div className="row g-2 mb-3">
+            <div className="col-md-6">
+              <input
+                className="form-control"
+                type="text"
+                placeholder="Search by name or phone"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="col-md-3">
+              <select className="form-select" value={bloodGroupFilter} onChange={(e) => setBloodGroupFilter(e.target.value)}>
+                <option value="">All blood groups</option>
+                {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((group) => (
+                  <option key={group} value={group}>{group}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           {loading ? (
             <div className="text-muted">Loading donors...</div>
           ) : (
@@ -350,6 +390,7 @@ export default function Donors() {
                 <thead>
                   <tr>
                     <th>Name</th>
+                    <th>Phone</th>
                     <th>Blood Group</th>
                     <th>Status</th>
                     <th>City</th>
@@ -358,22 +399,23 @@ export default function Donors() {
                   </tr>
                 </thead>
                 <tbody>
-                  {donors.length === 0 ? (
+                  {filteredDonors.length === 0 ? (
                     <tr>
-                      <td colSpan="5" className="text-center text-muted py-4">No donors found.</td>
+                      <td colSpan="7" className="text-center text-muted py-4">No donors found.</td>
                     </tr>
                   ) : (
-                    donors.map((donor) => (
+                    filteredDonors.map((donor) => (
                       <tr key={donor._id}>
                         <td>{donor.fullName}</td>
+                        <td>{donor.phone || '—'}</td>
                         <td>{donor.bloodGroup}</td>
-                        <td>{donor.district || '—'}</td>
                         <td>
                           <span className={`badge ${donor.eligibilityStatus === false ? 'bg-warning text-dark' : 'bg-success'}`}>
                             {donor.eligibilityStatus === false ? 'Pending' : 'Eligible'}
                           </span>
                         </td>
                         <td>{donor.city}</td>
+                        <td>{donor.district || '—'}</td>
                         <td>
                           <button className="btn btn-sm btn-outline-primary me-2" onClick={() => handleSelectDonor(donor)}>
                             Manage Donations

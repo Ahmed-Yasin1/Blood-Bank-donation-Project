@@ -1,4 +1,4 @@
 import apiClient from './ApiClient'
 
-export const getReport = () => apiClient.get('/reports')
-export const getDashboardStats = () => apiClient.get('/dashboard')
+export const getReport = (params) => apiClient.get('/reports', { params })
+export const getDashboardStats = (params) => apiClient.get('/dashboard', { params })
