@@ -82,7 +82,7 @@ export const getUserNotifications = async (req, res) => {
 
     const notifications = await Notification.find(filter)
       .populate("recipient", "fullName email bloodGroup district eligibilityStatus")
-      .populate("relatedEmergency", "bloodType urgency status location")
+      .populate({ path: "relatedEmergency", populate: { path: "hospital", select: "name username email" } })
       .populate("sender", "name email district")
       .sort({ createdAt: -1 });
 
@@ -122,7 +122,7 @@ export const getHospitalSentNotifications = async (req, res) => {
     const notifications = await Notification.find(filter)
       .populate('recipient', 'fullName email bloodGroup district eligibilityStatus')
       .populate('sender', 'name email district')
-      .populate('relatedEmergency', 'bloodType urgency status location')
+      .populate({ path: "relatedEmergency", populate: { path: "hospital", select: "name username email" } })
       .sort({ createdAt: -1 })
 
     const unreadCount = await Notification.countDocuments({ sender: req.user.id, isRead: false })

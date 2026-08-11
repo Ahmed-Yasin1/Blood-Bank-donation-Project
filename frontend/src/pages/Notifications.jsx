@@ -66,8 +66,8 @@ export default function Notifications() {
                       <strong>{n.title}</strong>
                       <div className="small text-muted">{n.message}</div>
                       <div className="small text-muted">{n.relatedEmergency ? `Emergency: ${n.relatedEmergency.bloodType}` : ''}</div>
-                      {n.sender?.name && (
-                        <div className="small text-muted">Hospital: {n.sender.name}</div>
+                      {(n.sender?.name || n.relatedEmergency?.hospital?.name || n.relatedEmergency?.hospital?.username || n.relatedEmergency?.hospital?.email) && (
+                        <div className="small text-muted">Hospital: {n.sender?.name || n.relatedEmergency?.hospital?.name || n.relatedEmergency?.hospital?.username || n.relatedEmergency?.hospital?.email}</div>
                       )}
 
                       {(user?.role === 'admin' || user?.role === 'hospital') && (
