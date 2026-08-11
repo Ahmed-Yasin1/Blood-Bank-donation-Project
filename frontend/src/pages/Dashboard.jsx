@@ -1,50 +1,95 @@
 import { useEffect, useState } from 'react'
+import useAuth from '../hooks/useAuth'
 import { getDashboardStats } from '../api/ReportApi'
+import { getHospital, updateHospital } from '../api/HospitalApi'
 import './Dashboard.css'
 
 const statCards = [
-  { key: 'totalDonors', label: 'Total Donors', note: 'Registered donors in system', accent: 'primary' },
-  { key: 'totalRequests', label: 'Emergency Requests', note: 'Emergency requests logged', accent: 'danger' },
-  { key: 'totalBloodUnitsAvailable', label: 'Available Units', note: 'Blood units currently in stock', accent: 'success' },
-  { key: 'totalHospitals', label: 'Hospitals', note: 'Hospitals registered in the system', accent: 'info' },
-  { key: 'totalUsers', label: 'Total Users', note: 'Users across all roles', accent: 'warning' },
-  { key: 'lowStockCount', label: 'Low Stock Items', note: 'Inventory items below restock threshold', accent: 'secondary' },
+  { key: 'totalDonors', label: 'Matched Donors', note: 'Donors matched to your hospital', accent: 'primary' },
+  { key: 'totalRequests', label: 'Your Emergency Requests', note: 'Emergency blood requests from your hospital', accent: 'danger' },
+  { key: 'totalBloodUnitsAvailable', label: 'Available Units', note: 'Blood units in your inventory', accent: 'success' },
+  { key: 'lowStockCount', label: 'Low Stock Items', note: 'Inventory below the restock threshold', accent: 'secondary' },
 ]
 
 export default function Dashboard() {
+  const { user } = useAuth()
   const [dashboardData, setDashboardData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [profile, setProfile] = useState(null)
+  const [district, setDistrict] = useState('')
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    getDashboardStats()
-      .then((response) => {
+    const load = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const userId = user?.id || user?._id
+        const response = await getDashboardStats({ hospitalId: user?.role === 'hospital' ? userId : undefined })
         if (response.data?.success) {
           setDashboardData(response.data.data)
         } else {
           throw new Error('Unable to fetch dashboard data')
         }
-      })
-      .catch((err) => {
+
+        if (user?.role === 'hospital' && userId) {
+          try {
+            const hospitalResponse = await getHospital(userId)
+            const data = hospitalResponse?.data || hospitalResponse
+            setProfile(data)
+            setDistrict(data?.district || '')
+          } catch (profileError) {
+            setProfile(null)
+            setDistrict('')
+          }
+        }
+      } catch (err) {
         setError(err.response?.data?.error || err.message || 'Unable to load dashboard data')
-      })
-      .finally(() => setLoading(false))
-  }, [])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    load()
+  }, [user])
+
+  const handleSaveDistrict = async (e) => {
+    e.preventDefault()
+    if (user?.role !== 'hospital') return
+
+    const userId = user?.id || user?._id
+    if (!userId) return
+
+    try {
+      setSaving(true)
+      await updateHospital(userId, { district })
+      const hospitalResponse = await getHospital(userId)
+      setProfile(hospitalResponse?.data || hospitalResponse)
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || 'Unable to update district')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   if (loading) return <div className="dashboard-loading">Loading dashboard metrics...</div>
   if (error) return <div className="dashboard-error">Error: {error}</div>
 
   const bloodTypeData = Object.entries(dashboardData?.bloodTypeCounts || {}).map(([type, value]) => ({ type, value }))
-  const roleData = Object.entries(dashboardData?.userRoles || {}).map(([name, value]) => ({ name, value }))
   const maxBlood = Math.max(...bloodTypeData.map((item) => item.value), 1)
 
   return (
     <div className="dashboard-container">
       <header className="dashboard-hero">
         <div>
-          <span className="dashboard-badge">Live system overview</span>
-          <h1 className="dashboard-title">Blood Bank Hub</h1>
-          <p className="dashboard-description">Track donors, inventories, hospitals and emergencies in one beautiful dashboard.</p>
+          <span className="dashboard-badge">{user?.role === 'hospital' ? 'Hospital dashboard' : 'Live system overview'}</span>
+          <h1 className="dashboard-title">{user?.role === 'hospital' ? `Welcome, ${profile?.name || user?.name || user?.email}` : 'Blood Bank Hub'}</h1>
+          <p className="dashboard-description">
+            {user?.role === 'hospital'
+              ? 'Your hospital emergency requests, inventory and donor matches.'
+              : 'Track donors, inventories, hospitals and emergencies in one beautiful dashboard.'}
+          </p>
         </div>
       </header>
 
@@ -58,12 +103,13 @@ export default function Dashboard() {
         ))}
       </div>
 
+
       <div className="dashboard-panels">
         <section className="panel panel-wide">
           <div className="panel-header">
             <div>
               <h2>Blood inventory by type</h2>
-              <p>Visual stock breakdown by blood group.</p>
+              <p>{user?.role === 'hospital' ? 'Your hospital inventory' : 'Visual stock breakdown by blood group.'}</p>
             </div>
           </div>
           <div className="chart-list">
@@ -92,22 +138,49 @@ export default function Dashboard() {
         <section className="panel panel-wide panel-alt">
           <div className="panel-header">
             <div>
-              <h2>User role distribution</h2>
-              <p>Admins, hospitals and donors across the platform.</p>
+              <h2>{user?.role === 'hospital' ? 'Your recent emergency requests' : 'User role distribution'}</h2>
+              <p>{user?.role === 'hospital' ? 'Requests that belong to your hospital.' : 'Admins, hospitals and donors across the platform.'}</p>
             </div>
           </div>
-          <div className="role-grid">
-            {roleData.length > 0 ? (
-              roleData.map((role, index) => (
-                <div key={role.name} className="role-card" style={{ borderColor: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b'][index % 4] }}>
-                  <span className="role-name">{role.name}</span>
-                  <strong>{role.value}</strong>
+          {user?.role === 'hospital' ? (
+            <div className="table-responsive">
+              <table className="table table-hover align-middle">
+                <thead>
+                  <tr>
+                    <th>Blood Type</th>
+                    <th>Units</th>
+                    <th>Urgency</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dashboardData?.hospitalEmergencies?.length > 0 ? (
+                    dashboardData.hospitalEmergencies.map((req) => (
+                      <tr key={req._id}>
+                        <td>{req.bloodType}</td>
+                        <td>{req.unitsRequired}</td>
+                        <td>{req.urgency}</td>
+                        <td>{req.status}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="4" className="text-center text-muted py-4">No emergency requests found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="role-grid">
+              {Object.entries(dashboardData?.userRoles || {}).map(([name, value], index) => (
+                <div key={name} className="role-card" style={{ borderColor: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b'][index % 4] }}>
+                  <span className="role-name">{name}</span>
+                  <strong>{value}</strong>
                 </div>
-              ))
-            ) : (
-              <p className="chart-empty">No role data available.</p>
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
       </div>
 
@@ -115,7 +188,7 @@ export default function Dashboard() {
         <div className="panel-header">
           <div>
             <h2>Recent activity</h2>
-            <p>Latest events from your blood bank system.</p>
+            <p>{user?.role === 'hospital' ? 'Latest activity from your hospital.' : 'Latest events from your blood bank system.'}</p>
           </div>
         </div>
         <div className="activity-stream">

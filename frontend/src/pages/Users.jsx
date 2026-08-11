@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import apiClient from '../api/ApiClient'
 
 const emptyForm = {
@@ -16,6 +16,15 @@ export default function Users() {
   const [formOpen, setFormOpen] = useState(false)
   const [editingUser, setEditingUser] = useState(null)
   const [form, setForm] = useState(emptyForm)
+  const [searchTerm, setSearchTerm] = useState('')
+
+  const filteredUsers = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase()
+
+    if (!query) return users
+
+    return users.filter((user) => String(user.username || user.fullName || '').toLowerCase().includes(query))
+  }, [users, searchTerm])
 
   const loadUsers = async () => {
     try {
@@ -169,6 +178,16 @@ export default function Users() {
 
           {error && <div className="alert alert-danger py-2">{error}</div>}
 
+          <div className="mb-3">
+            <input
+              className="form-control"
+              type="text"
+              placeholder="Search users by name"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
           {formOpen && (
             <div className="border rounded-3 p-3 mb-4 bg-white">
               <h5 className="mb-3 text-danger">{editingUser ? 'Edit User' : 'Add User'}</h5>
@@ -249,12 +268,12 @@ export default function Users() {
                   </tr>
                 </thead>
                 <tbody>
-                  {users.length === 0 ? (
+                  {filteredUsers.length === 0 ? (
                     <tr>
                       <td colSpan="5" className="text-center text-muted py-4">No users found.</td>
                     </tr>
                   ) : (
-                    users.map((user) => (
+                    filteredUsers.map((user) => (
                       <tr key={user._id}>
                         <td>{user.username || user.fullName || 'User'}</td>
                         <td>{user.email}</td>

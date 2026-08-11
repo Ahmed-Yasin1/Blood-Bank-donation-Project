@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import useAuth from '../hooks/useAuth'
 import { createEmergency, deleteEmergency, getEmergencies, updateEmergencyStatus } from '../api/EmergencyApi'
 import { getHospitals } from '../api/HospitalApi'
 import { DISTRICTS } from '../constants/districts'
@@ -14,6 +15,9 @@ const initialForm = {
 }
 
 export default function EmergencyRequests() {
+  const { user } = useAuth()
+  const isHospital = user?.role === 'hospital'
+
   const [requests, setRequests] = useState([])
   const [hospitals, setHospitals] = useState([])
   const [loading, setLoading] = useState(true)
@@ -38,10 +42,19 @@ export default function EmergencyRequests() {
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [user])
+
+  useEffect(() => {
+    if (isHospital) {
+      setForm((prev) => ({ ...prev, hospital: user?.id || user?._id }))
+    }
+  }, [isHospital, user?.id, user?._id])
 
   const resetForm = () => {
     setForm(initialForm)
+    if (isHospital) {
+      setForm((prev) => ({ ...prev, hospital: user.id }))
+    }
     setShowForm(false)
   }
 
@@ -58,7 +71,8 @@ export default function EmergencyRequests() {
     try {
       await createEmergency({
         ...form,
-        unitsRequired: Number(form.unitsRequired)
+        unitsRequired: Number(form.unitsRequired),
+        hospital: isHospital ? (user?.id || user?._id) : form.hospital,
       })
       await loadData()
       resetForm()
@@ -133,15 +147,26 @@ export default function EmergencyRequests() {
 
           {showForm && (
             <form onSubmit={handleSubmit} className="row g-3 mb-3">
-              <div className="col-md-4">
-                <label className="form-label">Hospital</label>
-                <select className="form-select" name="hospital" value={form.hospital} onChange={handleChange} required>
-                  <option value="">Select hospital</option>
-                  {hospitals.map((hospital) => (
-                    <option key={hospital._id} value={hospital._id}>{hospital.name}</option>
-                  ))}
-                </select>
-              </div>
+              {isHospital ? (
+                <div className="col-md-4">
+                  <label className="form-label">Hospital</label>
+                  <input
+                    className="form-control"
+                    value={hospitals.find((hospital) => hospital._id === user.id)?.name || 'Your Hospital'}
+                    disabled
+                  />
+                </div>
+              ) : (
+                <div className="col-md-4">
+                  <label className="form-label">Hospital</label>
+                  <select className="form-select" name="hospital" value={form.hospital} onChange={handleChange} required>
+                    <option value="">Select hospital</option>
+                    {hospitals.map((hospital) => (
+                      <option key={hospital._id} value={hospital._id}>{hospital.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div className="col-md-2">
                 <label className="form-label">Blood Type</label>
                 <select className="form-select" name="bloodType" value={form.bloodType} onChange={handleChange}>
@@ -214,7 +239,7 @@ export default function EmergencyRequests() {
                   ) : (
                     requests.map((item) => (
                       <tr key={item._id}>
-                        <td>{item.hospital?.name || item.hospital || '—'}</td>
+                        <td>{item.hospital?.name || item.hospital?.username || item.hospital?.email || item.hospital || '—'}</td>
                         <td>{item.bloodType}</td>
                         <td>{item.unitsRequired}</td>
                         <td>

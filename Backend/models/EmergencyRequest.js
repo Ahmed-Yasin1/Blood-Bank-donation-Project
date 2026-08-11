@@ -6,8 +6,13 @@ const EmergencyRequestSchema = new mongoose.Schema(
   {
     hospital: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Hospital",
       required: [true, "Hospital is required"],
+      refPath: 'hospitalModel',
+    },
+    hospitalModel: {
+      type: String,
+      required: [true, 'Hospital model is required'],
+      enum: ['Hospital', 'User'],
     },
     bloodType: {
       type: String,

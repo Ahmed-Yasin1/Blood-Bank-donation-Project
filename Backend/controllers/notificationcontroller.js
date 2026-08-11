@@ -18,17 +18,24 @@ export const sendNotification = async (req, res) => {
     }
 
     // Create notification
-    const notification = await Notification.create({
+    const notificationPayload = {
       recipient,
       title,
       message,
       type: type || "System",
       relatedEmergency: relatedEmergency || null,
       isRead: false,
-    });
+    }
+
+    if (req.user?.role === 'hospital') {
+      notificationPayload.sender = req.user.id
+    }
+
+    const notification = await Notification.create(notificationPayload)
 
     // Populate recipient details
-    await notification.populate("recipient", "fullName email bloodGroup district eligibilityStatus");
+    await notification.populate("recipient", "fullName email bloodGroup district eligibilityStatus")
+    await notification.populate("sender", "name email district")
 
     return res.status(201).json({
       success: true,
@@ -54,9 +61,7 @@ export const getUserNotifications = async (req, res) => {
     const { userId } = req.params;
     const { isRead } = req.query;
 
-    // authorization: donors can only access their own notifications
     if (req.user && req.user.role === 'donor') {
-      // find donor by id and ensure it belongs to this logged-in user
       const donor = await Notification.db.model('Donor').findById(userId)
       if (!donor) {
         return res.status(404).json({ success: false, message: 'Donor not found' })
@@ -66,21 +71,22 @@ export const getUserNotifications = async (req, res) => {
       }
     }
 
-    // Build filter
-    let filter = { recipient: userId };
+    const isAdmin = req.user?.role === 'admin'
+    const filter = isAdmin && userId === 'all'
+      ? {}
+      : { recipient: userId }
+
     if (isRead !== undefined) {
       filter.isRead = isRead === "true";
     }
 
-    // Fetch notifications
     const notifications = await Notification.find(filter)
       .populate("recipient", "fullName email bloodGroup district eligibilityStatus")
       .populate("relatedEmergency", "bloodType urgency status location")
       .sort({ createdAt: -1 });
 
-    // Count unread notifications
     const unreadCount = await Notification.countDocuments({
-      recipient: userId,
+      ...(isAdmin && userId === 'all' ? {} : { recipient: userId }),
       isRead: false,
     });
 
@@ -100,8 +106,75 @@ export const getUserNotifications = async (req, res) => {
   }
 };
 
+export const getHospitalSentNotifications = async (req, res) => {
+  try {
+    if (req.user?.role !== 'hospital') {
+      return res.status(403).json({ success: false, message: 'Access denied' })
+    }
+
+    const { isRead } = req.query
+    const filter = { sender: req.user.id }
+    if (isRead !== undefined) {
+      filter.isRead = isRead === 'true'
+    }
+
+    const notifications = await Notification.find(filter)
+      .populate('recipient', 'fullName email bloodGroup district eligibilityStatus')
+      .populate('sender', 'name email district')
+      .populate('relatedEmergency', 'bloodType urgency status location')
+      .sort({ createdAt: -1 })
+
+    const unreadCount = await Notification.countDocuments({ sender: req.user.id, isRead: false })
+
+    return res.status(200).json({
+      success: true,
+      message: 'Sent notifications retrieved successfully',
+      count: notifications.length,
+      unreadCount,
+      data: notifications,
+    })
+  } catch (error) {
+    console.error('Error fetching hospital sent notifications:', error)
+    return res.status(500).json({
+      success: false,
+      message: 'Server error while fetching notifications',
+    })
+  }
+}
+
+export const markAllHospitalSentRead = async (req, res) => {
+  try {
+    if (req.user?.role !== 'hospital') {
+      return res.status(403).json({ success: false, message: 'Access denied' })
+    }
+
+    const result = await Notification.updateMany(
+      { sender: req.user.id, isRead: false },
+      { isRead: true }
+    )
+
+    const notifications = await Notification.find({ sender: req.user.id })
+      .populate('recipient', 'fullName email bloodGroup district eligibilityStatus')
+      .populate('sender', 'name email district')
+      .populate('relatedEmergency', 'bloodType urgency status location')
+      .sort({ createdAt: -1 })
+
+    return res.status(200).json({
+      success: true,
+      message: `${result.modifiedCount} sent notifications marked as read`,
+      modifiedCount: result.modifiedCount,
+      data: notifications,
+    })
+  } catch (error) {
+    console.error('Error marking hospital sent notifications as read:', error)
+    return res.status(500).json({
+      success: false,
+      message: 'Server error while marking notifications as read',
+    })
+  }
+}
+
 /**
- * Mark a single notification as read
  * @route PATCH /api/notification/:id/read
  * @access Protected - User/Admin
  */

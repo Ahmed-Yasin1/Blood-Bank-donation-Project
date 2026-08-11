@@ -51,10 +51,6 @@ export default function Login() {
               {loading ? 'Signing in...' : 'Login'}
             </button>
           </form>
-
-          <div className="mt-3 small text-muted">
-            Demo admin: <strong>admin@bloodbank.local</strong> / <strong>Admin123</strong>
-          </div>
         </div>
       </div>
     </div>

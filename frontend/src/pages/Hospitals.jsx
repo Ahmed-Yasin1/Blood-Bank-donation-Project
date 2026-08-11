@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createHospital, deleteHospital, getHospitals, updateHospital } from '../api/HospitalApi'
 import { DISTRICTS } from '../constants/districts'
 
@@ -20,6 +20,15 @@ export default function Hospitals() {
   const [showForm, setShowForm] = useState(false)
   const [editingHospital, setEditingHospital] = useState(null)
   const [form, setForm] = useState(initialForm)
+  const [searchTerm, setSearchTerm] = useState('')
+
+  const filteredHospitals = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase()
+
+    if (!query) return hospitals
+
+    return hospitals.filter((hospital) => String(hospital.name || '').toLowerCase().includes(query))
+  }, [hospitals, searchTerm])
 
   const loadHospitals = async () => {
     try {
@@ -182,6 +191,16 @@ export default function Hospitals() {
 
           {error && <div className="alert alert-danger py-2">{error}</div>}
 
+          <div className="mb-3">
+            <input
+              className="form-control"
+              type="text"
+              placeholder="Search hospitals by name"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
           {loading ? (
             <div className="text-muted">Loading hospitals...</div>
           ) : (
@@ -197,12 +216,12 @@ export default function Hospitals() {
                   </tr>
                 </thead>
                 <tbody>
-                  {hospitals.length === 0 ? (
+                  {filteredHospitals.length === 0 ? (
                     <tr>
                       <td colSpan="5" className="text-center text-muted py-4">No hospitals found.</td>
                     </tr>
                   ) : (
-                    hospitals.map((hospital) => (
+                    filteredHospitals.map((hospital) => (
                       <tr key={hospital._id}>
                         <td>{hospital.name}</td>
                         <td>{hospital.district || hospital.location}</td>

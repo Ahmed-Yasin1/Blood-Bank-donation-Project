@@ -5,58 +5,85 @@ import Hospital from '../models/Hospital.js';
 
 export const getDashboardStats = async (req, res) => {
     try {
-        const totalDonors = await User.countDocuments({ role: 'donor' });
-        const totalRequests = await EmergencyRequest.countDocuments();
-        const totalHospitals = await Hospital.countDocuments();
-        const totalUsers = await User.countDocuments();
+        const hospitalId = req.user?.role === 'hospital'
+            ? req.user.id
+            : req.query.hospitalId
+        const filter = hospitalId ? { hospital: hospitalId } : {}
 
-        const inventoryItems = await BloodInventory.find();
-        const totalBloodUnitsAvailable = inventoryItems.reduce((acc, item) => acc + (item.quantity || 0), 0);
-        const lowStockCount = await BloodInventory.countDocuments({ quantity: { $lt: 10 } });
-        const expirySoonCount = await BloodInventory.countDocuments({ expiryDate: { $lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) } });
+        const totalRequests = await EmergencyRequest.countDocuments(filter)
+        const inventoryItems = await BloodInventory.find(filter)
+        const totalBloodUnitsAvailable = inventoryItems.reduce((acc, item) => acc + (item.quantity || 0), 0)
+        const lowStockCount = await BloodInventory.countDocuments({ ...filter, quantity: { $lt: 10 } })
+        const expirySoonCount = await BloodInventory.countDocuments({
+            ...filter,
+            expiryDate: { $lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) },
+        })
 
         const bloodTypeCounts = inventoryItems.reduce((counts, item) => {
-            const type = item.bloodType || 'Unknown';
-            counts[type] = (counts[type] || 0) + (item.quantity || 0);
-            return counts;
-        }, {});
+            const type = item.bloodType || 'Unknown'
+            counts[type] = (counts[type] || 0) + (item.quantity || 0)
+            return counts
+        }, {})
 
         const roleCounts = await User.aggregate([
             { $group: { _id: '$role', count: { $sum: 1 } } },
-        ]);
+        ])
 
         const userRoles = roleCounts.reduce((acc, role) => {
-            acc[role._id] = role.count;
-            return acc;
-        }, {});
+            acc[role._id] = role.count
+            return acc
+        }, {})
 
-        const recentActivities = [
-            `Tracked ${totalUsers} system users`,
-            `Logged ${totalRequests} emergency requests`,
-            `Detected ${lowStockCount} low-stock item${lowStockCount === 1 ? '' : 's'}`,
-        ];
+        const totalDonors = hospitalId
+            ? await EmergencyRequest.aggregate([
+                { $match: { hospital: hospitalId } },
+                { $unwind: '$matchedDonors' },
+                { $group: { _id: '$matchedDonors' } },
+                { $count: 'count' },
+              ]).then((result) => (result[0] ? result[0].count : 0))
+            : await User.countDocuments({ role: 'donor' })
 
-        res.status(200).json({
+        const totalHospitals = hospitalId ? 1 : await Hospital.countDocuments()
+
+        const recentActivities = hospitalId
+            ? [`Hospital has ${totalRequests} emergency request${totalRequests === 1 ? '' : 's'}`]
+            : [
+                `Tracked ${await User.countDocuments()} system users`,
+                `Logged ${totalRequests} emergency requests`,
+                `Detected ${lowStockCount} low-stock item${lowStockCount === 1 ? '' : 's'}`,
+              ]
+
+        const hospitalEmergencies = hospitalId
+            ? await EmergencyRequest.find({ hospital: hospitalId }).sort({ createdAt: -1 }).limit(6).populate('hospital')
+            : []
+
+        const hospitalInventory = hospitalId
+            ? inventoryItems
+            : []
+
+        return res.status(200).json({
             success: true,
             message: 'Dashboard data fetched successfully',
             data: {
                 totalDonors,
                 totalRequests,
                 totalHospitals,
-                totalUsers,
+                totalUsers: hospitalId ? undefined : await User.countDocuments(),
                 totalBloodUnitsAvailable,
                 lowStockCount,
                 expirySoonCount,
                 bloodTypeCounts,
                 userRoles,
                 recentActivities,
+                hospitalEmergencies,
+                hospitalInventory,
             }
-        });
+        })
     } catch (error) {
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: "Server Error",
-            error: error.message
-        });
+            error: error.message,
+        })
     }
 };

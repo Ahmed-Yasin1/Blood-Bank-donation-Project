@@ -2,6 +2,13 @@ import EmergencyRequest from "../models/EmergencyRequest.js";
 import Notification from "../models/Notification.js";
 import Donor from "../models/Donor.js";
 import Hospital from "../models/Hospital.js";
+import User from "../models/User.js";
+
+const getHospitalIdString = (hospital) => {
+  if (!hospital) return null
+  if (hospital._id) return hospital._id.toString()
+  return hospital.toString()
+}
 
 /**
  * Create a new emergency request
@@ -10,22 +17,34 @@ import Hospital from "../models/Hospital.js";
  */
 export const createEmergencyRequest = async (req, res) => {
   try {
-    const { hospital, bloodType, unitsRequired, urgency, location, contactPerson, phone } = req.body;
+    const requestedHospital = req.user?.role === 'hospital' ? req.user.id : req.body.hospital
+    const { bloodType, unitsRequired, urgency, location, contactPerson, phone } = req.body;
 
     // Validate required fields
-    if (!hospital || !bloodType || !unitsRequired) {
+    if (!requestedHospital || !bloodType || !unitsRequired) {
       return res.status(400).json({
         success: false,
         message: "Please provide all required fields: hospital, bloodType, unitsRequired",
       });
     }
 
-    const hospitalDocument = await Hospital.findById(hospital);
+    let hospitalDocument = await Hospital.findById(requestedHospital);
+    let userHospital = null
+
     if (!hospitalDocument) {
-      return res.status(404).json({
-        success: false,
-        message: "Selected hospital not found",
-      });
+      userHospital = await User.findById(requestedHospital).select('username email role');
+      if (!userHospital || userHospital.role !== 'hospital') {
+        return res.status(404).json({
+          success: false,
+          message: "Selected hospital not found",
+        });
+      }
+
+      hospitalDocument = {
+        _id: userHospital._id,
+        name: userHospital.username || userHospital.email,
+        district: undefined,
+      };
     }
 
     const requestLocation = location || hospitalDocument.district;
@@ -39,7 +58,8 @@ export const createEmergencyRequest = async (req, res) => {
     const normalizedPhone = phone ? String(phone).trim().replace(/\s|[-()\.]/g, '') : undefined
 
     let emergencyRequest = await EmergencyRequest.create({
-      hospital,
+      hospital: requestedHospital,
+      hospitalModel: userHospital ? 'User' : 'Hospital',
       bloodType: bloodType.toUpperCase(),
       unitsRequired,
       urgency: urgency || "Medium",
@@ -63,6 +83,7 @@ export const createEmergencyRequest = async (req, res) => {
       const notificationPromises = donorIds.map((donorId) =>
         Notification.create({
           recipient: donorId,
+          sender: emergencyRequest.hospital,
           title: "Emergency Blood Request",
           message: `Emergency blood request for ${emergencyRequest.bloodType}. Urgency: ${emergencyRequest.urgency}. Please respond if available.`,
           type: "Emergency",
@@ -113,6 +134,7 @@ export const getAllEmergencyRequests = async (req, res) => {
     if (status) filter.status = status;
     if (urgency) filter.urgency = urgency;
     if (bloodType) filter.bloodType = bloodType.toUpperCase();
+    if (req.user?.role === 'hospital') filter.hospital = req.user.id;
 
     const emergencies = await EmergencyRequest.find(filter)
       .populate("hospital")
@@ -154,6 +176,11 @@ export const getEmergencyById = async (req, res) => {
       });
     }
 
+    const emergencyHospitalId = getHospitalIdString(emergency.hospital)
+    if (req.user?.role === 'hospital' && emergencyHospitalId !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Access denied' })
+    }
+
     return res.status(200).json({
       success: true,
       message: "Emergency request retrieved successfully",
@@ -178,7 +205,15 @@ export const updateEmergency = async (req, res) => {
     const { id } = req.params;
     const { bloodType, unitsRequired, urgency, location, contactPerson, phone } = req.body;
 
-    // Find and update emergency request
+    const existingEmergency = await EmergencyRequest.findById(id)
+    if (!existingEmergency) {
+      return res.status(404).json({ success: false, message: 'Emergency request not found' })
+    }
+
+    if (req.user?.role === 'hospital' && existingEmergency.hospital.toString() !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Access denied' })
+    }
+
     const emergency = await EmergencyRequest.findByIdAndUpdate(
       id,
       {
@@ -224,14 +259,20 @@ export const deleteEmergency = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const emergency = await EmergencyRequest.findByIdAndDelete(id);
-
+    const emergency = await EmergencyRequest.findById(id);
     if (!emergency) {
       return res.status(404).json({
         success: false,
         message: "Emergency request not found",
       });
     }
+
+    const emergencyHospitalId = getHospitalIdString(emergency.hospital)
+    if (req.user?.role === 'hospital' && emergencyHospitalId !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Access denied' })
+    }
+
+    await emergency.deleteOne();
 
     // Delete associated notifications
     await Notification.deleteMany({ relatedEmergency: id });
@@ -267,6 +308,15 @@ export const updateEmergencyStatus = async (req, res) => {
         success: false,
         message: `Invalid status. Allowed values: ${validStatuses.join(", ")}`,
       });
+    }
+
+    const existingEmergency = await EmergencyRequest.findById(id)
+    if (!existingEmergency) {
+      return res.status(404).json({ success: false, message: 'Emergency request not found' })
+    }
+
+    if (req.user?.role === 'hospital' && existingEmergency.hospital.toString() !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Access denied' })
     }
 
     const emergency = await EmergencyRequest.findByIdAndUpdate(
@@ -320,6 +370,11 @@ export const smartMatching = async (req, res) => {
         success: false,
         message: "Emergency request not found",
       });
+    }
+
+    const emergencyHospitalId = getHospitalIdString(emergency.hospital)
+    if (req.user?.role === 'hospital' && emergencyHospitalId !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Access denied' })
     }
 
     const matchedDonors = await Donor.find({

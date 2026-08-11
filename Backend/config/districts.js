@@ -7,7 +7,8 @@ export const DISTRICTS = [
   '31-May',
   'Axmed-Dhagax',
   'Maxamuud-Haybe',
-  'Maxamed-Mooge'
+  'Maxamed-Mooge',
+  'Hargeisa'
 ]
 
 export const isValidDistrict = (value) => DISTRICTS.includes(value)

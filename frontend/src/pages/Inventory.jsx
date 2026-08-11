@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import useAuth from '../hooks/useAuth'
 import { addBlood, deleteInventory, getInventory, updateInventory } from '../api/InventoryApi'
 import { getHospitals } from '../api/HospitalApi'
 
@@ -10,6 +11,9 @@ const initialForm = {
 }
 
 export default function Inventory() {
+  const { user } = useAuth()
+  const isHospital = user?.role === 'hospital'
+
   const [inventory, setInventory] = useState([])
   const [hospitals, setHospitals] = useState([])
   const [loading, setLoading] = useState(true)
@@ -18,6 +22,19 @@ export default function Inventory() {
   const [showForm, setShowForm] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
   const [form, setForm] = useState(initialForm)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [hospitalFilter, setHospitalFilter] = useState('')
+
+  const filteredInventory = useMemo(() => {
+    const query = searchTerm.trim().toUpperCase()
+
+    return inventory.filter((item) => {
+      const matchesBloodType = !query || item.bloodType?.toUpperCase().includes(query)
+      const matchesHospital = !hospitalFilter || String(item.hospital?._id || item.hospital || '').toLowerCase() === hospitalFilter.toLowerCase()
+
+      return matchesBloodType && matchesHospital
+    })
+  }, [inventory, searchTerm, hospitalFilter])
 
   const loadData = async () => {
     try {
@@ -45,10 +62,19 @@ export default function Inventory() {
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [user])
+
+  useEffect(() => {
+    if (isHospital) {
+      setForm((prev) => ({ ...prev, hospital: user.id }))
+    }
+  }, [isHospital, user?.id])
 
   const resetForm = () => {
     setForm(initialForm)
+    if (isHospital) {
+      setForm((prev) => ({ ...prev, hospital: user.id }))
+    }
     setEditingItem(null)
     setShowForm(false)
   }
@@ -71,7 +97,7 @@ export default function Inventory() {
 
     try {
       const payload = {
-        hospital: form.hospital,
+        hospital: isHospital ? user.id : form.hospital,
         bloodType: form.bloodType.toUpperCase(),
         quantity: Number(form.quantity),
         expiryDate: form.expiryDate
@@ -162,15 +188,26 @@ export default function Inventory() {
 
           {showForm && (
             <form onSubmit={handleSubmit} className="row g-3 mb-3">
-              <div className="col-md-4">
-                <label className="form-label">Hospital</label>
-                <select className="form-select" name="hospital" value={form.hospital} onChange={handleChange} required>
-                  <option value="">Select hospital</option>
-                  {hospitals.map((hospital) => (
-                    <option key={hospital._id} value={hospital._id}>{hospital.name}</option>
-                  ))}
-                </select>
-              </div>
+              {isHospital ? (
+                <div className="col-md-4">
+                  <label className="form-label">Hospital</label>
+                  <input
+                    className="form-control"
+                    value={hospitals.find((hospital) => hospital._id === user.id)?.name || 'Your Hospital'}
+                    disabled
+                  />
+                </div>
+              ) : (
+                <div className="col-md-4">
+                  <label className="form-label">Hospital</label>
+                  <select className="form-select" name="hospital" value={form.hospital} onChange={handleChange} required>
+                    <option value="">Select hospital</option>
+                    {hospitals.map((hospital) => (
+                      <option key={hospital._id} value={hospital._id}>{hospital.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div className="col-md-2">
                 <label className="form-label">Blood Type</label>
                 <select className="form-select" name="bloodType" value={form.bloodType} onChange={handleChange}>
@@ -198,6 +235,28 @@ export default function Inventory() {
 
           {error && <div className="alert alert-danger py-2">{error}</div>}
 
+          <div className="row g-2 mb-3">
+            <div className="col-md-6">
+              <input
+                className="form-control"
+                type="text"
+                placeholder="Search by blood type"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            {!isHospital && (
+              <div className="col-md-3">
+                <select className="form-select" value={hospitalFilter} onChange={(e) => setHospitalFilter(e.target.value)}>
+                  <option value="">All hospitals</option>
+                  {hospitals.map((hospital) => (
+                    <option key={hospital._id} value={hospital._id}>{hospital.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+
           {loading ? (
             <div className="text-muted">Loading inventory...</div>
           ) : (
@@ -214,12 +273,12 @@ export default function Inventory() {
                   </tr>
                 </thead>
                 <tbody>
-                  {inventory.length === 0 ? (
+                  {filteredInventory.length === 0 ? (
                     <tr>
                       <td colSpan="6" className="text-center text-muted py-4">No inventory found.</td>
                     </tr>
                   ) : (
-                    inventory.map((item) => {
+                    filteredInventory.map((item) => {
                       const expiry = item.expiryDate ? new Date(item.expiryDate).toLocaleDateString() : 'N/A'
                       const isLow = Number(item.quantity || 0) < 20
                       const isExpiring = item.expiryDate && (new Date(item.expiryDate) - new Date()) / (1000 * 60 * 60 * 24) <= 30
@@ -228,7 +287,7 @@ export default function Inventory() {
                         <tr key={item._id}>
                           <td>{item.bloodType}</td>
                           <td>{item.quantity}</td>
-                          <td>{item.hospital?.name || item.hospital || '—'}</td>
+                          <td>{item.hospital?.name || item.hospital?.username || item.hospital?.email || item.hospital || '—'}</td>
                           <td>{expiry}</td>
                           <td>
                             <span className={`badge ${isLow ? 'bg-warning text-dark' : isExpiring ? 'bg-info text-dark' : 'bg-success'}`}>

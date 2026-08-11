@@ -1,6 +1,9 @@
-import { useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAppContext } from '../context/AppContext'
+import useAuth from '../hooks/useAuth'
+import { getHospital, updateHospital } from '../api/HospitalApi'
+import { DISTRICTS } from '../constants/districts'
 
 const navigationLinks = [
   { to: '/dashboard', label: 'Dashboard' },
@@ -16,15 +19,16 @@ const navigationLinks = [
 export default function Sidebar() {
   const { sidebarOpen } = useAppContext()
   const navigate = useNavigate()
+  const { user: currentUser } = useAuth()
+  const [hospitalProfile, setHospitalProfile] = useState(null)
+  const [district, setDistrict] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
 
-  const currentUser = useMemo(() => {
-    try {
-      const storedUser = localStorage.getItem('user')
-      return storedUser ? JSON.parse(storedUser) : null
-    } catch {
-      return null
-    }
-  }, [])
+  const userId = currentUser?.id || currentUser?._id
+  const isHospital = currentUser?.role === 'hospital'
+  const isDonor = currentUser?.role === 'donor'
+  const isAdmin = currentUser?.role === 'admin'
 
   const handleLogout = () => {
     localStorage.removeItem('token')
@@ -32,11 +36,68 @@ export default function Sidebar() {
     navigate('/login', { replace: true })
   }
 
+  useEffect(() => {
+    if (!isHospital || !userId) return
+
+    const loadHospital = async () => {
+      try {
+        const response = await getHospital(userId)
+        const data = response?.data || response
+        setHospitalProfile(data)
+        setDistrict(data?.district || '')
+      } catch {
+        setHospitalProfile(null)
+      }
+    }
+
+    loadHospital()
+  }, [isHospital, userId])
+
+  const handleSaveDistrict = async (e) => {
+    e.preventDefault()
+    if (!isHospital || !userId) return
+
+    try {
+      setSaving(true)
+      setError(null)
+      const response = await updateHospital(userId, { district })
+      const data = response?.data?.hospital || response?.data || response
+      setHospitalProfile(data)
+      setDistrict(data?.district || '')
+    } catch (err) {
+      setError(err.response?.data?.message || err.response?.data?.error || err.message || 'Unable to update district')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const visibleLinks = navigationLinks.filter((link) => {
+    if (isDonor) {
+      return link.to === '/notifications' || link.to === '/donations'
+    }
+
+    if (isHospital) {
+      return [
+        '/dashboard',
+        '/donors',
+        '/emergency-requests',
+        '/inventory',
+        '/notifications',
+        '/reports',
+        '/donations'
+      ].includes(link.to)
+    }
+
+    if (!isAdmin) {
+      return link.to !== '/users'
+    }
+
+    return true
+  })
+
   if (!sidebarOpen) {
     return null
   }
-
-  const isAdmin = currentUser?.role === 'admin'
 
   return (
     <aside className="bg-white border-end shadow-sm p-3" style={{ width: '270px', minHeight: 'calc(100vh - 56px)' }}>
@@ -52,21 +113,19 @@ export default function Sidebar() {
         </div>
 
         <div className="list-group mt-3">
-          {navigationLinks
-            .filter((link) => link.to !== 'users' || isAdmin)
-            .map((link) => (
-              <NavLink
-                key={link.to}
-                to={link.to}
-                className={({ isActive }) =>
-                  `list-group-item list-group-item-action border-0 rounded-3 mb-1 ${
-                    isActive ? 'active bg-danger text-white' : 'text-dark'
-                  }`
-                }
-              >
-                {link.label}
-              </NavLink>
-            ))}
+          {visibleLinks.map((link) => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              className={({ isActive }) =>
+                `list-group-item list-group-item-action border-0 rounded-3 mb-1 ${
+                  isActive ? 'active bg-danger text-white' : 'text-dark'
+                }`
+              }
+            >
+              {link.label}
+            </NavLink>
+          ))}
         </div>
       </div>
 
@@ -77,7 +136,7 @@ export default function Sidebar() {
             U
           </div>
           <div>
-            <div className="fw-semibold text-danger small">{currentUser?.email || 'Guest User'}</div>
+            <div className="fw-semibold text-danger small">{currentUser?.name || currentUser?.username || currentUser?.email || 'Guest User'}</div>
             <div className="small text-muted">{currentUser?.role || 'System User'}</div>
           </div>
         </div>

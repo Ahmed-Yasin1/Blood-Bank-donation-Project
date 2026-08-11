@@ -48,12 +48,12 @@ export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body
 
-    let user = await User.findOne({ email })
-    let userType = 'User'
+    let user = await Hospital.findOne({ email })
+    let userType = 'Hospital'
 
     if (!user) {
-      user = await Hospital.findOne({ email })
-      userType = 'Hospital'
+      user = await User.findOne({ email })
+      userType = 'User'
     }
 
     if (!user) {
@@ -81,6 +81,7 @@ export const loginUser = async (req, res) => {
 
     if (userType === 'Hospital') {
       profile.name = user.name
+      profile.role = 'hospital'
     } else {
       profile.username = user.username
     }
@@ -100,10 +101,17 @@ export const getProfile = async (req, res) => {
       return res.status(404).json({ error: 'User not found' })
     }
 
-    const profile = { ...user.toObject() }
+    const profile = { ...user.toObject(), id: user._id, userType: req.user.userType || (user.role === 'hospital' ? 'Hospital' : 'User') }
+    if (req.user.userType === 'Hospital') {
+      profile.role = 'hospital'
+    }
     if (user.role === 'donor') {
       const donorRecord = await User.db.model('Donor').findOne({ user: user._id }).select('_id')
       if (donorRecord) profile.donorId = donorRecord._id
+    }
+
+    if (profile._id) {
+      delete profile._id
     }
 
     res.json({ user: profile })
