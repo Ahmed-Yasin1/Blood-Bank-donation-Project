@@ -83,6 +83,7 @@ export const getUserNotifications = async (req, res) => {
     const notifications = await Notification.find(filter)
       .populate("recipient", "fullName email bloodGroup district eligibilityStatus")
       .populate("relatedEmergency", "bloodType urgency status location")
+      .populate("sender", "name email district")
       .sort({ createdAt: -1 });
 
     const unreadCount = await Notification.countDocuments({

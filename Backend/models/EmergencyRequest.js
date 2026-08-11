@@ -64,6 +64,24 @@ const EmergencyRequestSchema = new mongoose.Schema(
         ref: "Donor",
       },
     ],
+    donorResponses: [
+      {
+        donor: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Donor',
+          required: true,
+        },
+        status: {
+          type: String,
+          enum: ['Accepted', 'Rejected'],
+          required: true,
+        },
+        respondedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
   },
   {
     timestamps: true,

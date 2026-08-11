@@ -8,6 +8,7 @@ import {
   updateEmergency,
   deleteEmergency,
   updateEmergencyStatus,
+  respondToEmergency,
   smartMatching,
 } from "../controllers/EmergencyController.js";
 
@@ -42,6 +43,11 @@ router.delete("/:id", protect, authorizeRoles('admin', 'hospital'), deleteEmerge
 // Protected: Hospital/Admin only
 // Body: { status: "Pending|Searching|Matched|Completed|Cancelled" }
 router.patch("/:id/status", protect, authorizeRoles('admin', 'hospital'), updateEmergencyStatus);
+
+// POST /api/emergency/:id/respond - Donor accepts or rejects an emergency request
+// Protected: Donor only
+// Body: { response: "Accepted|Rejected" }
+router.post("/:id/respond", protect, authorizeRoles('donor'), respondToEmergency);
 
 // GET /api/emergency/:id/match - Smart matching for donors
 // Protected: Hospital/Admin only

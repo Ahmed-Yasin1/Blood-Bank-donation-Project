@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getNotifications, getAllNotifications, getHospitalSentNotifications, markNotificationRead, markAllNotificationsRead, markAllHospitalNotificationsRead, deleteNotification } from '../api/NotificationApi'
+import { respondToEmergency } from '../api/EmergencyApi'
 import useAuth from '../hooks/useAuth'
 
 export default function Notifications() {
@@ -65,7 +66,11 @@ export default function Notifications() {
                       <strong>{n.title}</strong>
                       <div className="small text-muted">{n.message}</div>
                       <div className="small text-muted">{n.relatedEmergency ? `Emergency: ${n.relatedEmergency.bloodType}` : ''}</div>
-                      {user?.role === 'admin' && (
+                      {n.sender?.name && (
+                        <div className="small text-muted">Hospital: {n.sender.name}</div>
+                      )}
+
+                      {(user?.role === 'admin' || user?.role === 'hospital') && (
                         <div className="small mt-1">
                           <span className={`badge ${n.isRead ? 'bg-success' : 'bg-warning text-dark'}`}>
                             {n.isRead ? 'Read' : 'Unread'}
