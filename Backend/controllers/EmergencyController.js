@@ -318,9 +318,7 @@ export const updateEmergencyStatus = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Emergency request not found' })
     }
 
-    if (req.user?.role === 'hospital' && existingEmergency.hospital.toString() !== req.user.id) {
-      return res.status(403).json({ success: false, message: 'Access denied' })
-    }
+
 
     const emergency = await EmergencyRequest.findByIdAndUpdate(
       id,

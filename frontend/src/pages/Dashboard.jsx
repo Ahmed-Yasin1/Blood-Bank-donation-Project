@@ -4,12 +4,26 @@ import { getDashboardStats } from '../api/ReportApi'
 import { getHospital, updateHospital } from '../api/HospitalApi'
 import './Dashboard.css'
 
-const statCards = [
+const adminStatCards = [
+  { key: 'totalDonors', label: 'Total Donors', note: 'Registered donors in the system', accent: 'primary' },
+  { key: 'totalHospitals', label: 'Registered Hospitals', note: 'Partner hospitals in network', accent: 'warning' },
+  { key: 'totalRequests', label: 'Emergency Requests', note: 'Total emergency blood requests', accent: 'danger' },
+  { key: 'totalBloodUnitsAvailable', label: 'Available Units', note: 'Blood units in inventory', accent: 'success' },
+  { key: 'lowStockCount', label: 'Low Stock Items', note: 'Inventory items ', accent: 'secondary' },
+]
+
+const hospitalStatCards = [
   { key: 'totalDonors', label: 'Matched Donors', note: 'Donors matched to your hospital', accent: 'primary' },
   { key: 'totalRequests', label: 'Your Emergency Requests', note: 'Emergency blood requests from your hospital', accent: 'danger' },
   { key: 'totalBloodUnitsAvailable', label: 'Available Units', note: 'Blood units in your inventory', accent: 'success' },
-  { key: 'lowStockCount', label: 'Low Stock Items', note: 'Inventory below the restock threshold', accent: 'secondary' },
+  { key: 'lowStockCount', label: 'Low Stock Items', note: 'Inventory items <= 50 units', accent: 'secondary' },
 ]
+
+const STATUS_STYLE = {
+  active:    { bg: '#d1fae5', color: '#065f46', border: '#6ee7b7', label: 'Active' },
+  inactive:  { bg: '#fee2e2', color: '#991b1b', border: '#fca5a5', label: 'Inactive' },
+  suspended: { bg: '#fef3c7', color: '#92400e', border: '#fde68a', label: 'Suspended' },
+}
 
 export default function Dashboard() {
   const { user } = useAuth()
@@ -88,13 +102,13 @@ export default function Dashboard() {
           <p className="dashboard-description">
             {user?.role === 'hospital'
               ? 'Your hospital emergency requests, inventory and donor matches.'
-              : 'Track donors, inventories, hospitals and emergencies in one beautiful dashboard.'}
+              : 'Track donors, inventories, hospitals and emergencies.'}
           </p>
         </div>
       </header>
 
       <div className="dashboard-grid">
-        {statCards.map((card) => (
+        {(user?.role === 'hospital' ? hospitalStatCards : adminStatCards).map((card) => (
           <article key={card.key} className={`dashboard-card dashboard-card-${card.accent}`}>
             <div className="card-label">{card.label}</div>
             <div className="card-value">{dashboardData?.[card.key] ?? 0}</div>
@@ -184,6 +198,76 @@ export default function Dashboard() {
         </section>
       </div>
 
+      {/* ── Registered Hospitals Panel (Admin only) ── */}
+      {user?.role !== 'hospital' && (
+        <section style={hStyles.section}>
+          <div style={hStyles.sectionHeader}>
+            <div>
+              <h2 style={hStyles.sectionTitle}>🏥 Registered Partner Hospitals</h2>
+              <p style={hStyles.sectionSub}>All hospitals enrolled in the blood bank network</p>
+            </div>
+            <span style={hStyles.countBadge}>{dashboardData?.hospitalsList?.length ?? 0} hospitals</span>
+          </div>
+
+          {dashboardData?.hospitalsList?.length > 0 ? (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={hStyles.table}>
+                <thead>
+                  <tr style={hStyles.thead}>
+                    <th style={hStyles.th}>#</th>
+                    <th style={hStyles.th}>Hospital Name</th>
+                    <th style={hStyles.th}>District</th>
+                    <th style={hStyles.th}>Phone</th>
+                    <th style={hStyles.th}>Email</th>
+                    <th style={hStyles.th}>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dashboardData.hospitalsList.map((h, i) => {
+                    const s = STATUS_STYLE[h.status?.toLowerCase()] || STATUS_STYLE.active
+                    return (
+                      <tr key={h._id || i} style={{ borderBottom: '1px solid #f3f4f6', transition: 'background .15s' }}
+                        onMouseEnter={e => e.currentTarget.style.background = '#fafafa'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <td style={hStyles.td}>
+                          <span style={hStyles.rowNum}>{i + 1}</span>
+                        </td>
+                        <td style={hStyles.td}>
+                          <div style={hStyles.hospitalName}>
+                            <span style={hStyles.hospitalIcon}>🏥</span>
+                            <span style={{ fontWeight: 600, color: '#111827' }}>{h.name || '—'}</span>
+                          </div>
+                        </td>
+                        <td style={hStyles.td}>
+                          <span style={{ color: '#6b7280' }}>📍 {h.district || h.address || '—'}</span>
+                        </td>
+                        <td style={hStyles.td}>
+                          <span style={{ color: '#374151' }}>📞 {h.phone || '—'}</span>
+                        </td>
+                        <td style={hStyles.td}>
+                          <span style={{ color: '#374151' }}>✉️ {h.email || '—'}</span>
+                        </td>
+                        <td style={hStyles.td}>
+                          <span style={{ ...hStyles.statusBadge, background: s.bg, color: s.color, border: `1px solid ${s.border}` }}>
+                            {s.label}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div style={hStyles.emptyBox}>
+              <span style={{ fontSize: 40 }}>🏥</span>
+              <p style={{ color: '#9ca3af', marginTop: 8 }}>No hospitals registered yet.</p>
+            </div>
+          )}
+        </section>
+      )}
+
       <section className="panel panel-activity">
         <div className="panel-header">
           <div>
@@ -206,4 +290,90 @@ export default function Dashboard() {
       </section>
     </div>
   )
+}
+
+const hStyles = {
+  section: {
+    background: '#fff',
+    borderRadius: 16,
+    padding: 28,
+    margin: '24px 0',
+    boxShadow: '0 1px 3px rgba(0,0,0,.08)',
+    border: '1px solid #f3f4f6',
+  },
+  sectionHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 700,
+    color: '#111827',
+    margin: 0,
+  },
+  sectionSub: {
+    fontSize: 13,
+    color: '#6b7280',
+    margin: '4px 0 0',
+  },
+  countBadge: {
+    background: '#fef3c7',
+    color: '#92400e',
+    border: '1px solid #fde68a',
+    borderRadius: 20,
+    padding: '4px 12px',
+    fontSize: 13,
+    fontWeight: 600,
+  },
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    fontSize: 14,
+  },
+  thead: {
+    background: '#f9fafb',
+  },
+  th: {
+    padding: '10px 14px',
+    textAlign: 'left',
+    fontWeight: 600,
+    color: '#374151',
+    fontSize: 13,
+    borderBottom: '2px solid #f3f4f6',
+    whiteSpace: 'nowrap',
+  },
+  td: {
+    padding: '12px 14px',
+    verticalAlign: 'middle',
+    fontSize: 14,
+  },
+  rowNum: {
+    background: '#f3f4f6',
+    color: '#6b7280',
+    borderRadius: 6,
+    padding: '2px 8px',
+    fontSize: 12,
+    fontWeight: 600,
+  },
+  hospitalName: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+  },
+  hospitalIcon: {
+    fontSize: 18,
+  },
+  statusBadge: {
+    display: 'inline-block',
+    borderRadius: 20,
+    padding: '3px 12px',
+    fontSize: 12,
+    fontWeight: 600,
+  },
+  emptyBox: {
+    textAlign: 'center',
+    padding: '40px 0',
+  },
 }

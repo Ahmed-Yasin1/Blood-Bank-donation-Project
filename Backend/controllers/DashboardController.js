@@ -13,7 +13,7 @@ export const getDashboardStats = async (req, res) => {
         const totalRequests = await EmergencyRequest.countDocuments(filter)
         const inventoryItems = await BloodInventory.find(filter)
         const totalBloodUnitsAvailable = inventoryItems.reduce((acc, item) => acc + (item.quantity || 0), 0)
-        const lowStockCount = await BloodInventory.countDocuments({ ...filter, quantity: { $lt: 10 } })
+        const lowStockCount = await BloodInventory.countDocuments({ ...filter, quantity: { $lte: 50 } })
         const expirySoonCount = await BloodInventory.countDocuments({
             ...filter,
             expiryDate: { $lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) },
@@ -44,12 +44,14 @@ export const getDashboardStats = async (req, res) => {
             : await User.countDocuments({ role: 'donor' })
 
         const totalHospitals = hospitalId ? 1 : await Hospital.countDocuments()
+        const hospitalsList = hospitalId ? [] : await Hospital.find().select('name district address phone email status').sort({ createdAt: -1 }).lean()
 
         const recentActivities = hospitalId
             ? [`Hospital has ${totalRequests} emergency request${totalRequests === 1 ? '' : 's'}`]
             : [
                 `Tracked ${await User.countDocuments()} system users`,
                 `Logged ${totalRequests} emergency requests`,
+                `Registered ${totalHospitals} partner hospitals`,
                 `Detected ${lowStockCount} low-stock item${lowStockCount === 1 ? '' : 's'}`,
               ]
 
@@ -68,6 +70,7 @@ export const getDashboardStats = async (req, res) => {
                 totalDonors,
                 totalRequests,
                 totalHospitals,
+                hospitalsList,
                 totalUsers: hospitalId ? undefined : await User.countDocuments(),
                 totalBloodUnitsAvailable,
                 lowStockCount,

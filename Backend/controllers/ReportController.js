@@ -29,6 +29,7 @@ export const generateSystemReport = async (req, res) => {
         const totalRequests = await EmergencyRequest.countDocuments(requestFilter);
         const pendingRequests = await EmergencyRequest.countDocuments({ ...requestFilter, status: 'Pending' });
         const totalHospitals = hospitalId ? 1 : await Hospital.countDocuments();
+        const hospitalsList = hospitalId ? [] : await Hospital.find().select('name district address phone email status').sort({ createdAt: -1 }).lean();
 
         const inventoryItems = await BloodInventory.find(hospitalFilter);
         const totalUnits = inventoryItems.reduce((acc, item) => acc + (item.quantity || 0), 0);
@@ -49,6 +50,7 @@ export const generateSystemReport = async (req, res) => {
             totalRequests,
             pendingRequests,
             totalHospitals,
+            hospitalsList,
             totalUnits,
             bloodGroupStats,
             inventoryDetails: inventoryItems,
