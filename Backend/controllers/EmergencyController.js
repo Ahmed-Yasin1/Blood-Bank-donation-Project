@@ -102,7 +102,8 @@ export const createEmergencyRequest = async (req, res) => {
       { new: true }
     )
       .populate("hospital")
-      .populate("matchedDonors", "fullName email bloodGroup district eligibilityStatus");
+      .populate("matchedDonors", "fullName email bloodGroup district eligibilityStatus")
+      .populate("donorResponses.donor", "fullName email bloodGroup district");
 
     return res.status(201).json({
       success: true,
@@ -139,6 +140,7 @@ export const getAllEmergencyRequests = async (req, res) => {
     const emergencies = await EmergencyRequest.find(filter)
       .populate("hospital")
       .populate("matchedDonors", "fullName email bloodGroup district eligibilityStatus")
+      .populate("donorResponses.donor", "fullName email bloodGroup district")
       .sort({ createdAt: -1 });
 
     return res.status(200).json({
@@ -167,7 +169,8 @@ export const getEmergencyById = async (req, res) => {
 
     const emergency = await EmergencyRequest.findById(id)
       .populate("hospital")
-      .populate("matchedDonors", "fullName email bloodGroup district eligibilityStatus");
+      .populate("matchedDonors", "fullName email bloodGroup district eligibilityStatus")
+      .populate("donorResponses.donor", "fullName email bloodGroup district");
 
     if (!emergency) {
       return res.status(404).json({
@@ -315,9 +318,7 @@ export const updateEmergencyStatus = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Emergency request not found' })
     }
 
-    if (req.user?.role === 'hospital' && existingEmergency.hospital.toString() !== req.user.id) {
-      return res.status(403).json({ success: false, message: 'Access denied' })
-    }
+
 
     const emergency = await EmergencyRequest.findByIdAndUpdate(
       id,
@@ -325,7 +326,8 @@ export const updateEmergencyStatus = async (req, res) => {
       { new: true, runValidators: true }
     )
       .populate("hospital")
-      .populate("matchedDonors", "fullName email bloodGroup district eligibilityStatus");
+      .populate("matchedDonors", "fullName email bloodGroup district eligibilityStatus")
+      .populate("donorResponses.donor", "fullName email bloodGroup district");
 
     if (!emergency) {
       return res.status(404).json({
@@ -358,6 +360,65 @@ export const updateEmergencyStatus = async (req, res) => {
  * 3. Valid donation interval
  * 4. Location proximity
  */
+export const respondToEmergency = async (req, res) => {
+  try {
+    const { id } = req.params
+    const { response } = req.body
+
+    const validResponses = ['Accepted', 'Rejected']
+    if (!response || !validResponses.includes(response)) {
+      return res.status(400).json({ success: false, message: `Response must be one of: ${validResponses.join(', ')}` })
+    }
+
+    if (req.user?.role !== 'donor') {
+      return res.status(403).json({ success: false, message: 'Only donors can respond to emergency requests' })
+    }
+
+    const donorRecord = await Donor.findOne({ user: req.user.id })
+    if (!donorRecord) {
+      return res.status(404).json({ success: false, message: 'Donor profile not found' })
+    }
+
+    const emergency = await EmergencyRequest.findById(id)
+    if (!emergency) {
+      return res.status(404).json({ success: false, message: 'Emergency request not found' })
+    }
+
+    const isMatched = emergency.matchedDonors.some((matched) => matched.toString() === donorRecord._id.toString())
+    if (!isMatched) {
+      return res.status(403).json({ success: false, message: 'You are not matched to this emergency request' })
+    }
+
+    const existingResponse = emergency.donorResponses.find((item) => item.donor.toString() === donorRecord._id.toString())
+    if (existingResponse) {
+      existingResponse.status = response
+      existingResponse.respondedAt = new Date()
+    } else {
+      emergency.donorResponses.push({
+        donor: donorRecord._id,
+        status: response,
+        respondedAt: new Date(),
+      })
+    }
+
+    await emergency.save()
+
+    const populatedEmergency = await EmergencyRequest.findById(id)
+      .populate('hospital')
+      .populate('matchedDonors', 'fullName email bloodGroup district eligibilityStatus')
+      .populate('donorResponses.donor', 'fullName email bloodGroup district')
+
+    return res.status(200).json({
+      success: true,
+      message: `Emergency request ${response.toLowerCase()} successfully`,
+      data: populatedEmergency,
+    })
+  } catch (error) {
+    console.error('Error responding to emergency:', error)
+    return res.status(500).json({ success: false, message: 'Server error while responding to emergency request' })
+  }
+}
+
 export const smartMatching = async (req, res) => {
   try {
     const { id } = req.params;
@@ -408,7 +469,8 @@ export const smartMatching = async (req, res) => {
       { new: true }
     )
       .populate("hospital")
-      .populate("matchedDonors", "fullName email bloodGroup district eligibilityStatus");
+      .populate("matchedDonors", "fullName email bloodGroup district eligibilityStatus")
+      .populate("donorResponses.donor", "fullName email bloodGroup district");
 
     const notificationPromises = donorIds.map((donorId) =>
       Notification.create({

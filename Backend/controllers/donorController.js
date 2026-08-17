@@ -19,16 +19,42 @@ const getHospitalProfile = async (userId) => {
   return null
 }
 
-const verifyHospitalAccess = async (userId, donor) => {
+const verifyHospitalAccess = async (userId) => {
   const hospital = await getHospitalProfile(userId)
-  if (!hospital || (hospital.district && donor.district !== hospital.district)) {
+  if (!hospital) {
     return null
   }
   return hospital
 }
 
 const getDonorForUser = async (userId) => {
-  return Donor.findOne({ user: userId })
+  let donor = await Donor.findOne({ user: userId })
+  if (!donor) {
+    const userObj = await User.findById(userId)
+    if (userObj?.email) {
+      donor = await Donor.findOne({ email: new RegExp(`^${userObj.email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') })
+      if (donor) {
+        if (!donor.user) {
+          donor.user = userObj._id
+          await donor.save()
+        }
+      } else if (userObj.role === 'donor') {
+        donor = await Donor.create({
+          fullName: userObj.username || userObj.email.split('@')[0],
+          email: userObj.email,
+          phone: 'Not provided',
+          age: 25,
+          bloodGroup: 'O+',
+          address: 'Not provided',
+          city: 'Hargeisa',
+          district: 'Macalin-Haaruun',
+          user: userObj._id,
+          donationHistory: []
+        })
+      }
+    }
+  }
+  return donor
 }
 
 const calculateEligibility = (donor) => {
@@ -253,14 +279,6 @@ export const searchDonors = async (req, res) => {
       }
 
       return res.status(200).json({ success: true, count: 1, donors: [donor] })
-    }
-
-    const hospital = req.user?.role === 'hospital'
-      ? await getHospitalProfile(req.user.id)
-      : null
-
-    if (hospital?.district) {
-      searchFilter.district = hospital.district
     }
 
     const donors = await Donor.find(searchFilter).sort({ createdAt: -1 })

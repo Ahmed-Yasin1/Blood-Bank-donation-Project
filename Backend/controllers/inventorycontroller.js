@@ -1,10 +1,15 @@
 import BloodInventory from "../models/BloodInventory.js";
+import Hospital from "../models/Hospital.js";
+import User from "../models/User.js";
 
 export const addBlood = async (req, res) => {
   try {
     const body = { ...req.body }
-    if (req.user?.role === 'hospital') {
-      body.hospital = req.user.id
+    if (body.hospital && typeof body.hospital === 'object') {
+      body.hospital = body.hospital._id
+    }
+    if (req.user?.role === 'hospital' && !body.hospital) {
+      body.hospital = req.user.id || req.user._id
     }
 
     const blood = await BloodInventory.create(body);
@@ -20,14 +25,35 @@ export const addBlood = async (req, res) => {
   }
 };
 
-
 export const getInventory = async (req, res) => {
   try {
-    const filter = req.user?.role === 'hospital' ? { hospital: req.user.id } : {}
-    const inventory = await BloodInventory.find(filter)
-      .populate("hospital");
+    const userId = req.user?.id || req.user?._id
+    const filter = req.user?.role === 'hospital' ? { hospital: userId } : {}
+    const inventory = await BloodInventory.find(filter).lean();
 
-    res.status(200).json(inventory);
+    const hospitalIds = inventory.map(i => i.hospital).filter(Boolean);
+    const hospitals = await Hospital.find({ _id: { $in: hospitalIds } }).lean();
+    const users = await User.find({ _id: { $in: hospitalIds } }).lean();
+
+    const hospitalMap = {};
+    hospitals.forEach(h => { hospitalMap[h._id.toString()] = h; });
+    users.forEach(u => {
+      hospitalMap[u._id.toString()] = {
+        _id: u._id,
+        name: u.name || u.username || u.email,
+        email: u.email
+      };
+    });
+
+    const populatedInventory = inventory.map(item => {
+      const hId = item.hospital ? item.hospital.toString() : null;
+      return {
+        ...item,
+        hospital: hospitalMap[hId] || (item.hospital ? { _id: item.hospital, name: 'Hospital' } : null)
+      };
+    });
+
+    res.status(200).json(populatedInventory);
 
   } catch (error) {
     res.status(500).json({
@@ -36,7 +62,6 @@ export const getInventory = async (req, res) => {
   }
 };
 
-
 export const updateInventory = async (req, res) => {
   try {
     const inventoryItem = await BloodInventory.findById(req.params.id);
@@ -44,13 +69,14 @@ export const updateInventory = async (req, res) => {
       return res.status(404).json({ message: 'Inventory item not found' });
     }
 
-    if (req.user?.role === 'hospital' && inventoryItem.hospital.toString() !== req.user.id) {
-      return res.status(403).json({ message: 'Access denied' });
+    const body = { ...req.body };
+    if (body.hospital && typeof body.hospital === 'object') {
+      body.hospital = body.hospital._id;
     }
 
     const blood = await BloodInventory.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      body,
       { new: true }
     );
 
@@ -66,16 +92,11 @@ export const updateInventory = async (req, res) => {
   }
 };
 
-
 export const deleteInventory = async (req, res) => {
   try {
     const inventoryItem = await BloodInventory.findById(req.params.id);
     if (!inventoryItem) {
       return res.status(404).json({ message: 'Inventory item not found' });
-    }
-
-    if (req.user?.role === 'hospital' && inventoryItem.hospital.toString() !== req.user.id) {
-      return res.status(403).json({ message: 'Access denied' });
     }
 
     await BloodInventory.findByIdAndDelete(req.params.id);

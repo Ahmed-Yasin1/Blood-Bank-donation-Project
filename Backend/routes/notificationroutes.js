@@ -46,7 +46,7 @@ router.patch("/read-all/:userId", protect, authorizeRoles('admin', 'donor'), mar
 router.patch("/read-all/sent", protect, authorizeRoles('hospital'), markAllHospitalSentRead);
 
 // DELETE /api/notification/:id - Delete notification
-// Protected: Admin only
-router.delete("/:id", protect, authorizeRoles('admin'), deleteNotification);
+// Protected: Admin, Hospital, Donor
+router.delete("/:id", protect, authorizeRoles('admin', 'hospital', 'donor'), deleteNotification);
 
 export default router;

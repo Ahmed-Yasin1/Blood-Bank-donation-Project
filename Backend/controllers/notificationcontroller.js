@@ -82,7 +82,8 @@ export const getUserNotifications = async (req, res) => {
 
     const notifications = await Notification.find(filter)
       .populate("recipient", "fullName email bloodGroup district eligibilityStatus")
-      .populate("relatedEmergency", "bloodType urgency status location")
+      .populate({ path: "relatedEmergency", populate: { path: "hospital", select: "name username email" } })
+      .populate("sender", "name email district")
       .sort({ createdAt: -1 });
 
     const unreadCount = await Notification.countDocuments({
@@ -113,22 +114,30 @@ export const getHospitalSentNotifications = async (req, res) => {
     }
 
     const { isRead } = req.query
-    const filter = { sender: req.user.id }
+    const hospitalId = req.user.id || req.user._id
+
+    const filter = {
+      $or: [
+        { sender: hospitalId },
+        { recipient: hospitalId },
+      ],
+    }
+
     if (isRead !== undefined) {
       filter.isRead = isRead === 'true'
     }
 
     const notifications = await Notification.find(filter)
-      .populate('recipient', 'fullName email bloodGroup district eligibilityStatus')
-      .populate('sender', 'name email district')
-      .populate('relatedEmergency', 'bloodType urgency status location')
+      .populate('recipient', 'fullName email bloodGroup district eligibilityStatus name username')
+      .populate('sender', 'name email district username')
+      .populate({ path: "relatedEmergency", populate: { path: "hospital", select: "name username email" } })
       .sort({ createdAt: -1 })
 
-    const unreadCount = await Notification.countDocuments({ sender: req.user.id, isRead: false })
+    const unreadCount = await Notification.countDocuments({ ...filter, isRead: false })
 
     return res.status(200).json({
       success: true,
-      message: 'Sent notifications retrieved successfully',
+      message: 'Hospital notifications retrieved successfully',
       count: notifications.length,
       unreadCount,
       data: notifications,

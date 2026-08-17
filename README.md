@@ -310,33 +310,7 @@ Last Donation Date
 
 ---
 
-# 🏥 4. Patient Management
 
-The patient module manages patients who require blood.
-
-Features:
-
-* Register patient
-* View patients
-* Search patients
-* View patient details
-* Update patient information
-* Delete patient
-* Record blood group
-* Record contact information
-
-Example:
-
-```text
-Patient ID
-Full Name
-Phone
-Gender
-Date of Birth
-Blood Group
-Address
-Medical Information
-```
 
 ---
 
@@ -419,7 +393,6 @@ The dashboard provides a complete overview of the system.
 It can display:
 
 * Total donors
-* Total patients
 * Total blood units
 * Available blood groups
 * Pending requests
@@ -452,7 +425,6 @@ The system can provide useful reports for administrators and staff.
 Reports may include:
 
 * Donor reports
-* Patient reports
 * Blood inventory reports
 * Blood request reports
 * Blood group availability
