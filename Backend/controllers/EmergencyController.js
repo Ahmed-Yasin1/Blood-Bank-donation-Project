@@ -3,6 +3,7 @@ import Notification from "../models/Notification.js";
 import Donor from "../models/Donor.js";
 import Hospital from "../models/Hospital.js";
 import User from "../models/User.js";
+import { sendEmail } from "../utils/sendEmail.js";
 
 const getHospitalIdString = (hospital) => {
   if (!hospital) return null
@@ -91,6 +92,19 @@ export const createEmergencyRequest = async (req, res) => {
         })
       );
       await Promise.all(notificationPromises);
+
+      // Send emails to all matched donors
+      const hospitalName = hospitalDocument.name || "a hospital";
+      const emailPromises = matchedDonors.map((donor) => {
+        if (donor.email) {
+          return sendEmail({
+            email: donor.email,
+            subject: `LifeLink Hub: Emergency Blood Request - ${emergencyRequest.bloodType}`,
+            message: `Hello ${donor.fullName},\n\nYou have been matched to an Emergency Blood Request from ${hospitalName}.\n\nBlood Type Needed: ${emergencyRequest.bloodType}\nUrgency: ${emergencyRequest.urgency}\nLocation: ${emergencyRequest.location}\n\nPlease log in to your LifeLink Hub account and respond as soon as possible.\n\nThank you for being a hero!\nLifeLink Hub Team`,
+          });
+        }
+      });
+      await Promise.all(emailPromises);
     }
 
     emergencyRequest = await EmergencyRequest.findByIdAndUpdate(
@@ -180,7 +194,7 @@ export const getEmergencyById = async (req, res) => {
     }
 
     const emergencyHospitalId = getHospitalIdString(emergency.hospital)
-    if (req.user?.role === 'hospital' && emergencyHospitalId !== req.user.id) {
+    if (req.user?.role === 'hospital' && emergencyHospitalId !== req.user.id.toString()) {
       return res.status(403).json({ success: false, message: 'Access denied' })
     }
 
@@ -213,7 +227,7 @@ export const updateEmergency = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Emergency request not found' })
     }
 
-    if (req.user?.role === 'hospital' && existingEmergency.hospital.toString() !== req.user.id) {
+    if (req.user?.role === 'hospital' && existingEmergency.hospital.toString() !== req.user.id.toString()) {
       return res.status(403).json({ success: false, message: 'Access denied' })
     }
 
@@ -271,7 +285,7 @@ export const deleteEmergency = async (req, res) => {
     }
 
     const emergencyHospitalId = getHospitalIdString(emergency.hospital)
-    if (req.user?.role === 'hospital' && emergencyHospitalId !== req.user.id) {
+    if (req.user?.role === 'hospital' && emergencyHospitalId !== req.user.id.toString()) {
       return res.status(403).json({ success: false, message: 'Access denied' })
     }
 
@@ -434,7 +448,7 @@ export const smartMatching = async (req, res) => {
     }
 
     const emergencyHospitalId = getHospitalIdString(emergency.hospital)
-    if (req.user?.role === 'hospital' && emergencyHospitalId !== req.user.id) {
+    if (req.user?.role === 'hospital' && emergencyHospitalId !== req.user.id.toString()) {
       return res.status(403).json({ success: false, message: 'Access denied' })
     }
 
@@ -483,6 +497,19 @@ export const smartMatching = async (req, res) => {
     );
 
     await Promise.all(notificationPromises);
+
+    // Send emails to all matched donors
+    const hospitalName = updatedEmergency.hospital?.name || updatedEmergency.hospital?.username || "a hospital";
+    const emailPromises = matchedDonors.map((donor) => {
+      if (donor.email) {
+        return sendEmail({
+          email: donor.email,
+          subject: `LifeLink Hub: Emergency Blood Request - ${emergency.bloodType}`,
+          message: `Hello ${donor.fullName},\n\nYou have been matched to an Emergency Blood Request from ${hospitalName}.\n\nBlood Type Needed: ${emergency.bloodType}\nUrgency: ${emergency.urgency}\nLocation: ${emergency.location}\n\nPlease log in to your LifeLink Hub account and respond as soon as possible.\n\nThank you for being a hero!\nLifeLink Hub Team`,
+        });
+      }
+    });
+    await Promise.all(emailPromises);
 
     return res.status(200).json({
       success: true,
