@@ -216,7 +216,7 @@ export const deleteDonor = async (req, res) => {
       }
     }
 
-    await donor.remove()
+    await donor.deleteOne()
 
     return res.status(200).json({ success: true, message: 'Donor deleted successfully' })
   } catch (error) {
