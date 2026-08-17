@@ -42,7 +42,7 @@ function timeAgo(dateStr) {
 export default function Notifications() {
   const { user, isLoading: authLoading } = useAuth()
   const [notifications, setNotifications] = useState([])
-  const [loading, setLoading]             = useState(true)
+  const [loading, setLoading]               = useState(true)
   const [error, setError]                 = useState('')
   const [deletingId, setDeletingId]       = useState(null)
   const [filter, setFilter]               = useState('all')
