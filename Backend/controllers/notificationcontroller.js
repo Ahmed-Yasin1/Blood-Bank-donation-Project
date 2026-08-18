@@ -78,17 +78,23 @@ export const getUserNotifications = async (req, res) => {
     const { userId } = req.params;
     const { isRead } = req.query;
 
+    // For donors: verify they can only access their own notifications
     if (req.user && req.user.role === 'donor') {
-      const donor = await Notification.db.model('Donor').findById(userId)
+      const DonorModel = Notification.db.model('Donor')
+      const donor = await DonorModel.findById(userId)
       if (!donor) {
         return res.status(404).json({ success: false, message: 'Donor not found' })
       }
-      if (!donor.user || donor.user.toString() !== req.user.id.toString()) {
+      // Allow if donor._id matches the userId OR donor.user matches the user id
+      const isOwner = donor._id.toString() === userId || 
+                      (donor.user && donor.user.toString() === req.user.id.toString())
+      if (!isOwner) {
         return res.status(403).json({ success: false, message: 'Access denied' })
       }
     }
 
     const isAdmin = req.user?.role === 'admin'
+    // Admin with 'all' gets all notifications including system-wide ones
     const filter = isAdmin && userId === 'all'
       ? {}
       : { recipient: userId }
@@ -99,8 +105,8 @@ export const getUserNotifications = async (req, res) => {
 
     const notifications = await Notification.find(filter)
       .populate("recipient", "fullName email bloodGroup district eligibilityStatus")
-      .populate({ path: "relatedEmergency", populate: { path: "hospital", select: "name username email" } })
-      .populate("sender", "name email district")
+      .populate({ path: "relatedEmergency", populate: { path: "hospital", select: "name username email district address" } })
+      .populate("sender", "name email district username")
       .sort({ createdAt: -1 });
 
     const unreadCount = await Notification.countDocuments({
