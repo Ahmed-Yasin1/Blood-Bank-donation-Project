@@ -242,9 +242,10 @@ export default function EmergencyRequests() {
 
             <div style={styles.formRow}>
               <div style={styles.formGroup}>
-                <label style={styles.label}>District / Location</label>
+                <label style={styles.label}>Target District </label>
                 <select style={styles.input} name="location" value={form.location} onChange={handleChange} required>
-                  <option value="">Select district</option>
+                  <option value="">Select target district</option>
+                  <option value="All Districts">All Districts </option>
                   {DISTRICTS.map((district) => (
                     <option key={district} value={district}>{district}</option>
                   ))}
@@ -302,7 +303,7 @@ export default function EmergencyRequests() {
                     </h4>
                     <div style={styles.cardMeta}>
                       <span style={styles.metaItem}>🩸 {item.unitsRequired} Units Required</span>
-                      <span style={styles.metaItem}>📍 {item.location || 'Location N/A'}</span>
+                      <span style={styles.metaItem}>📍 {[item.hospital?.district, item.hospital?.address].filter(Boolean).join(', ') || item.location || 'Location N/A'}</span>
                     </div>
                     {(item.contactPerson || item.phone) && (
                       <div style={styles.contactInfo}>

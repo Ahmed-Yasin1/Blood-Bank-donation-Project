@@ -30,8 +30,13 @@ export default function Navbar() {
           </NavLink>
         </div>
 
-        {/* Right Side: Status Badge */}
+        {/* Right Side: Home Button & Status Badge */}
         <div style={s.rightSection}>
+          <NavLink to="/home" style={s.homeBtn}>
+            <span style={{ fontSize: 14 }}>🏠</span>
+            <span style={s.homeBtnText}>Home</span>
+          </NavLink>
+
           {/* System Live Pill */}
           <div style={s.liveBadge}>
             <span style={s.livePulseDot} />
@@ -134,6 +139,23 @@ const s = {
     display: 'flex',
     alignItems: 'center',
     gap: 16,
+  },
+  homeBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    background: 'rgba(255, 255, 255, 0.15)',
+    border: '1px solid rgba(255, 255, 255, 0.25)',
+    color: '#ffffff',
+    textDecoration: 'none',
+    padding: '6px 14px',
+    borderRadius: 20,
+    fontSize: 12,
+    fontWeight: 700,
+    transition: 'all 0.2s',
+  },
+  homeBtnText: {
+    letterSpacing: '0.02em',
   },
   liveBadge: {
     display: 'flex',
