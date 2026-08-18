@@ -1,415 +1,339 @@
-import React from "react";
-import { Link } from "react-router-dom";
-import "./Home.css";
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { getPublicEmergenciesToday } from '../api/EmergencyApi';
+import { getHospitals } from '../api/HospitalApi';
+import './home.css';
 
-export default function Home() {
+const Home = () => {
+  const [emergencies, setEmergencies] = useState([]);
+  const [hospitals, setHospitals] = useState([]);
+  const [loadingEmergencies, setLoadingEmergencies] = useState(true);
+  const [loadingHospitals, setLoadingHospitals] = useState(true);
+
+  useEffect(() => {
+    const fetchTodayEmergencies = async () => {
+      try {
+        const response = await getPublicEmergenciesToday();
+        if (response.data && response.data.success) {
+          setEmergencies(response.data.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch public emergency requests:', error);
+      } finally {
+        setLoadingEmergencies(false);
+      }
+    };
+
+    const fetchPublicHospitals = async () => {
+      try {
+        const response = await getHospitals();
+        if (Array.isArray(response.data)) {
+          setHospitals(response.data);
+        } else if (response.data && response.data.success) {
+          setHospitals(response.data.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch hospitals:', error);
+      } finally {
+        setLoadingHospitals(false);
+      }
+    };
+
+    fetchTodayEmergencies();
+    fetchPublicHospitals();
+  }, []);
+
+  // Formatting date and time
+  const formatDateTime = (dateString) => {
+    if (!dateString) return { date: '', time: '' };
+    const date = new Date(dateString);
+    return {
+      date: date.toLocaleDateString(),
+      time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+  };
+
   return (
-    <div className="blood-home">
-
-      {/* ================= NAVBAR ================= */}
-      <header className="navbar">
+    <div className="landing-page">
+      {/* 9. Navigation Bar */}
+      <nav className="landing-navbar">
         <div className="nav-container">
-
-          <Link to="/" className="brand">
-            <div className="brand-drop">♥</div>
-            <div>
-              <div className="brand-name">
-                Blood<span>Bank</span>
-              </div>
-              <div className="brand-tagline">
-                Save Lives • Donate Blood
-              </div>
-            </div>
-          </Link>
-
-          <nav className="nav-menu">
-            <Link className="active" to="/">Home</Link>
-            <Link to="/Login">Hospitals</Link>
-            <Link to="/Login">Donors</Link>
-            <Link to="/Login"> Emergency Blood Requests</Link>
-            <Link to="/Login">Reports</Link>
-          </nav>
-
+          <div className="nav-brand">
+            <span className="brand-icon">🩸</span>
+            <span className="brand-text">LifeLink</span>
+          </div>
+          <div className="nav-links">
+            <a href="#home">Home</a>
+            <a href="#how-it-works">How It Works</a>
+            <a href="#hospitals">Hospitals</a>
+            <a href="#emergencies">Emergency Requests</a>
+            <a href="#about">About</a>
+          </div>
           <div className="nav-actions">
-            <Link to="/Login" className="login-button">
-              👤 Login
-            </Link>
-
-          </div>
-
-        </div>
-      </header>
-
-
-      {/* ================= HERO ================= */}
-      <section className="hero">
-
-        <div className="hero-background-shape"></div>
-
-        <div className="hero-container">
-
-          <div className="hero-content">
-
-            <h1>
-              Your Blood Can
-              <span>Save a Life</span>
-            </h1>
-
-            <p>
-              Join our mission to save lives. Connect with donors,
-              hospitals and patients in need of blood. Together we can
-              make a difference.
-            </p>
-
-            <div className="hero-buttons">
-
-              <Link to="/Login" className="primary-button">
-                <span>◉</span>
-                Become a Donor
-              </Link>
-
-              <Link to="/Login" className="outline-button">
-                <span>♢</span>
-                Request Blood
-              </Link>
-
-            </div>
-
-          </div>
-
-
-          {/* HERO IMAGE */}
-          <div className="hero-visual">
-
-            <div className="hero-photo">
-              <div className="doctor-placeholder">
-
-                <div className="doctor-head"></div>
-
-                <div className="doctor-body">
-                  <div className="stethoscope">♡</div>
-                </div>
-
-                <div className="blood-bag">
-                  <div className="blood-bag-top"></div>
-                  <div className="blood-level"></div>
-                </div>
-
-                <div className="heart">
-                  ♥
-                  <small>♥</small>
-                </div>
-
-              </div>
-            </div>
-
-          </div>
-
-        </div>
-      </section>
-
-
-      {/* ================= STATISTICS ================= */}
-      <section className="statistics">
-
-        <div className="stat">
-          <div className="stat-icon">♟</div>
-          <div>
-            <strong>1,250+</strong>
-            <span>Registered Donors</span>
+            <Link to="/login" className="btn-nav-login">Login</Link>
           </div>
         </div>
+      </nav>
 
-        <div className="stat-divider"></div>
-
-        <div className="stat">
-          <div className="stat-icon">▦</div>
-          <div>
-            <strong>45+</strong>
-            <span>Hospitals</span>
-          </div>
-        </div>
-
-        <div className="stat-divider"></div>
-
-        <div className="stat">
-          <div className="stat-icon">♦</div>
-          <div>
-            <strong>3,500+</strong>
-            <span>Blood Donations</span>
-          </div>
-        </div>
-
-        <div className="stat-divider"></div>
-
-        <div className="stat">
-          <div className="stat-icon">♥</div>
-          <div>
-            <strong>2,800+</strong>
-            <span>Lives Saved</span>
-          </div>
-        </div>
-
-      </section>
-
-
-      {/* ================= HOW IT WORKS ================= */}
-      <section className="how-section">
-
-        <div className="section-heading">
-          <div className="section-label">HOW IT WORKS</div>
-
-          <h2>Simple Steps to Save Lives</h2>
-
+      {/* 1. Hero Section */}
+      <section id="home" className="hero-section">
+        <div className="hero-content">
+          <h1>Donate Blood. Save Lives.</h1>
           <p>
-            Our platform makes blood donation and emergency requests
-            easy and organized.
+            Help save lives by donating blood through trusted hospitals and connecting with medical professionals who need blood for patients in critical situations.
           </p>
+          <div className="hero-buttons">
+            <a href="#hospitals" className="btn-primary">Find a Nearby Hospital</a>
+            <Link to="/login" className="btn-secondary-outline dark-text">Login</Link>
+          </div>
         </div>
-
-
-        <div className="steps">
-
-          <div className="step-card">
-
-            <div className="step-icon">♟</div>
-
-            <div>
-              <h3>1. Sign In</h3>
-              <p>
-                Sign in to your account as a donor,
-                hospital or admin.
-              </p>
+        <div className="hero-visual">
+          <div className="medical-hero-image">
+            <div className="floating-badge badge-top">
+              <span className="badge-icon">👨‍⚕️</span> Trusted Doctors
             </div>
-
-          </div>
-
-
-          <div className="arrow">→</div>
-
-
-          <div className="step-card">
-
-            <div className="step-icon">♦</div>
-
-            <div>
-              <h3>2. Find & Match</h3>
-              <p>
-                Find compatible donors or
-                hospitals with available blood.
-              </p>
+            <div className="floating-badge badge-bottom">
+              <span className="badge-icon">🏥</span> Verified Hospitals
             </div>
-
           </div>
-
-
-          <div className="arrow">→</div>
-
-
-          <div className="step-card">
-
-            <div className="step-icon">♥</div>
-
-            <div>
-              <h3>3. Save Lives</h3>
-              <p>
-                Connect and donate blood to
-                those in need.
-              </p>
-            </div>
-
-          </div>
-
         </div>
-
       </section>
 
-
-      {/* ================= LOWER SECTIONS ================= */}
-      <section className="lower-section">
-
-        {/* WHY DONATE */}
-        <div className="donate-card">
-
-          <div className="donate-content">
-
-            <div className="big-drop">♦</div>
-
-            <div>
-              <h2>Why Donate Blood?</h2>
-
-              <ul>
-                <li>✓ Saves lives</li>
-                <li>✓ Helps patients in emergency situations</li>
-                <li>✓ Builds a healthier community</li>
-                <li>✓ You can make a real difference</li>
-              </ul>
-
-              <Link to="/" className="small-red-button">
-                👤 Become a Donor Today →
-              </Link>
-            </div>
-
+      {/* 4. Emergency Blood Requests - TODAY */}
+      <section id="emergencies" className="emergency-section">
+        <div className="container">
+          <div className="section-title">
+            <h2>Emergency Blood Requests Today</h2>
+            <p className="red-accent">Real-time urgent needs from hospitals</p>
           </div>
 
-          <div className="hand-icon">
-            <div className="hand-drop">♥</div>
-            <div className="hand-shape"></div>
-          </div>
+          <div className="emergency-cards-wrapper">
+            {loadingEmergencies ? (
+              <div className="loading-state">Loading today's emergency requests...</div>
+            ) : emergencies.length === 0 ? (
+              <div className="no-emergencies-box">
+                <h3>No Emergency Blood Requests Today</h3>
+                <p>There are currently no active emergency blood requests. Please check again later.</p>
+              </div>
+            ) : (
+              <div className="emergency-grid">
+                {emergencies.map((request) => {
+                  const { date, time } = formatDateTime(request.createdAt);
+                  return (
+                      <div key={request._id} className="emergency-card">
+                        <div className="card-header-badges">
+                          <span className="urgency-badge">🚨 {request.urgency || 'Urgent'} Priority</span>
+                          <span className="status-badge">⚡ {request.status || 'Active'}</span>
+                        </div>
+                        
+                        <h3 className="hospital-name">🏥 {request.hospital?.name || request.hospital?.username || 'Hargeisa Hospital'}</h3>
+                        
+                        {(request.contactPerson || request.phone) && (
+                          <p className="doctor-name">
+                            👨‍⚕️ {request.contactPerson || 'Doctor'} {request.phone ? `(${request.phone})` : ''}
+                          </p>
+                        )}
+                        
+                        <div className="blood-details">
+                          <div className="blood-detail-box">
+                            <span className="detail-label">Blood Group</span>
+                            <span className="detail-value text-red">{request.bloodType}</span>
+                          </div>
+                          <div className="blood-detail-box">
+                            <span className="detail-label">Units Needed</span>
+                            <span className="detail-value">{request.unitsRequired}</span>
+                          </div>
+                        </div>
 
+                        <div className="info-row">
+                          <span>📍 Location:</span>
+                          <strong>{[request.hospital?.district, request.hospital?.address].filter(Boolean).join(', ') || request.location || 'Hargeisa'}</strong>
+                        </div>
+                        <div className="info-row">
+                          <span>📅 Date:</span>
+                          <strong>{date}</strong>
+                        </div>
+                        <div className="info-row">
+                          <span>⏰ Time:</span>
+                          <strong>{time}</strong>
+                        </div>
+                        
+                        <Link to="/login" className="btn-view-request">View Emergency Request</Link>
+                      </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
-
-
-        {/* EMERGENCY */}
-        <div className="emergency-card">
-
-          <div className="emergency-content">
-
-            <div className="ambulance">✚</div>
-
-            <div>
-              <h2>Emergency Blood Request</h2>
-
-              <p>
-                Hospitals can quickly request blood for
-                patients in critical condition.
-              </p>
-
-              <Link
-                to="/blood-requests/create"
-                className="emergency-button"
-              >
-                ♟ Submit Request →
-              </Link>
-            </div>
-
-          </div>
-
-          <div className="heartbeat">
-            〰〰〰♥〰〰〰
-          </div>
-
-        </div>
-
       </section>
 
-
-      {/* ================= FOOTER ================= */}
-      <footer className="footer">
-
-  <div className="footer-main">
-
-    {/* BRAND */}
-    <div className="footer-brand">
-
-      <div className="footer-brand-logo">
-
-        <div className="footer-logo-drop">
-          ♥
+      {/* 2. How Blood Donation Works */}
+      <section id="how-it-works" className="how-it-works-section">
+        <div className="container">
+          <div className="section-title">
+            <h2>How Blood Donation Works</h2>
+            <p>A safe, medical-first approach to donating blood</p>
+          </div>
+          <div className="steps-container">
+            <div className="step-item">
+              <div className="step-icon">🏥</div>
+              <h3>Step 1 - Find a Nearby Hospital</h3>
+              <p>Find a hospital or medical center near you to begin the process.</p>
+            </div>
+            <div className="step-item">
+              <div className="step-icon">📅</div>
+              <h3>Step 2 - Book a Donation</h3>
+              <p>Book a blood donation appointment with the nearest available hospital.</p>
+            </div>
+            <div className="step-item">
+              <div className="step-icon">👨‍⚕️</div>
+              <h3>Step 3 - Visit the Doctor</h3>
+              <p>Visit the hospital and receive a medical check-up from a healthcare professional.</p>
+            </div>
+            <div className="step-item">
+              <div className="step-icon">🩸</div>
+              <h3>Step 4 - Donate Blood</h3>
+              <p>After being medically approved, you can donate blood and help save a life.</p>
+            </div>
+          </div>
         </div>
+      </section>
 
-        <h2>
-          Smart<span>BloodBank</span>
-        </h2>
+      {/* 3. Why Blood Donation Matters */}
+      <section id="about" className="benefits-section">
+        <div className="container">
+          <div className="section-title">
+            <h2>Why Blood Donation Matters</h2>
+            <p>The impact of your contribution</p>
+          </div>
+          <div className="benefits-grid">
+            <div className="benefit-card">
+              <div className="benefit-icon">❤️</div>
+              <h3>Save Lives</h3>
+              <p>One blood donation can help patients who urgently need blood.</p>
+            </div>
+            <div className="benefit-card">
+              <div className="benefit-icon">🩸</div>
+              <h3>Support Emergency Patients</h3>
+              <p>Blood is essential during accidents, surgeries, childbirth emergencies, and other critical situations.</p>
+            </div>
+            <div className="benefit-card">
+              <div className="benefit-icon">🏥</div>
+              <h3>Help Hospitals</h3>
+              <p>Hospitals need a reliable blood supply to treat patients quickly.</p>
+            </div>
+            <div className="benefit-card">
+              <div className="benefit-icon">👨‍⚕️</div>
+              <h3>Support Doctors</h3>
+              <p>Doctors can respond faster when the required blood group is available.</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
-      </div>
+      {/* 6. Book a Blood Donation */}
+      <section className="booking-info-section">
+        <div className="container booking-info-container">
+          <div className="booking-info-text">
+            <h2>Book Your Blood Donation</h2>
+            <p className="lead-text">Choose a nearby hospital, select an available doctor or appointment time, and book your blood donation visit.</p>
+            <div className="booking-flow">
+              <span className="flow-step">Choose Hospital</span>
+              <span className="flow-arrow">→</span>
+              <span className="flow-step">Choose Doctor</span>
+              <span className="flow-arrow">→</span>
+              <span className="flow-step">Choose Date & Time</span>
+              <span className="flow-arrow">→</span>
+              <span className="flow-step highlight">Book Appointment</span>
+            </div>
+          </div>
+        </div>
+      </section>
 
-      <p>
-        Connecting blood donors, hospitals and patients
-        to make blood donation easier, faster and more
-        accessible for everyone.
-      </p>
+      {/* 5. Find a Nearby Hospital */}
+      <section id="hospitals" className="hospitals-section">
+        <div className="container">
+          <div className="section-title">
+            <h2>Find a Hospital Near You</h2>
+            <p>Find the nearest hospital where you can book a blood donation appointment and speak with a medical professional.</p>
+          </div>
+          
+          {loadingHospitals ? (
+            <div className="loading-state">Loading hospitals...</div>
+          ) : hospitals.length === 0 ? (
+            <div className="no-data-box">No hospitals available at the moment.</div>
+          ) : (
+            <div className="hospital-grid">
+              {hospitals.slice(0, 6).map((hospital) => (
+                <div key={hospital._id} className="hospital-card">
+                  <div className="hospital-header">
+                    <h3>🏥 {hospital.name}</h3>
+                    <span className="status-open">Open</span>
+                  </div>
+                  <div className="hospital-body">
+                    <p><strong>📍 Location:</strong> {[hospital.district, hospital.address].filter(Boolean).join(', ') || 'Not specified'}</p>
+                    <p><strong>👨‍⚕️ Available Doctors:</strong> {hospital.doctorsCount || 'Multiple Available'}</p>
+                    <p><strong>🩸 Donation:</strong> Available</p>
+                    <p><strong>🕒 Hours:</strong> 24 Hours Open</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
 
-      <div className="footer-socials">
-        <a href="#">f</a>
-        <a href="#">𝕏</a>
-        <a href="#">in</a>
-        <a href="#">◎</a>
-      </div>
+      {/* 7. Hospitals Are the Registered Organizations */}
+      <section className="hospital-trust-section">
+        <div className="container trust-container">
+          <h2>Trusted Hospitals, Better Blood Management</h2>
+          <p>
+            Hospitals are registered and verified on our platform to manage blood donation services, emergency blood requests, doctors, appointments, and blood availability.
+          </p>
+          <Link to="/login" className="btn-white">Hospital Login</Link>
+        </div>
+      </section>
 
-    </div>
+      {/* 10. Footer */}
+      <footer className="landing-footer">
+        <div className="footer-content">
+          <div className="footer-col">
+            <div className="footer-brand">
+              <span className="brand-icon">🩸</span>
+              <span>LifeLink</span>
+            </div>
+            <p className="footer-desc">
+              A professional blood donation management system connecting medical professionals and verified hospitals with critical blood supplies.
+            </p>
+          </div>
+          
+          <div className="footer-col">
+            <h4>Quick Links</h4>
+            <a href="#emergencies">Emergency Requests</a>
+            <a href="#hospitals">Hospitals</a>
+            <a href="#how-it-works">How It Works</a>
+          </div>
 
+          <div className="footer-col">
+            <h4>Portal</h4>
+            <Link to="/login" className="footer-login-link">Hospital Login</Link>
+            <a href="#contact">Contact Support</a>
+          </div>
 
-    {/* QUICK LINKS */}
-    <div className="footer-column">
-
-      <h3>Quick Links</h3>
-
-      <Link to="/">Home</Link>
-      <Link to="/donors">Donors</Link>
-      <Link to="/hospitals">Hospitals</Link>
-      <Link to="/emergency-requests">
-        Blood Requests
-      </Link>
-
-    </div>
-
-
-    {/* SERVICES */}
-    <div className="footer-column">
-
-      <h3>Services</h3>
-
-      <Link to="/donors">
-        Find Donors
-      </Link>
-
-      <Link to="/hospitals">
-        Find Hospitals
-      </Link>
-
-      <Link to="/inventory">
-        Blood Inventory
-      </Link>
-
-      <Link to="/emergency-requests">
-        Emergency Requests
-      </Link>
-
-    </div>
-
-
-    {/* CONTACT */}
-    <div className="footer-column footer-contact">
-
-      <h3>Contact Us</h3>
-
-      <p>
-        📍 Blood Bank Center
-      </p>
-
-      <p>
-        ☎ +252 63 XXX XXXX
-      </p>
-
-      <p>
-        ✉ info@smartbloodbank.com
-      </p>
-
-      <p>
-        🕐 Available 24/7
-      </p>
-
-    </div>
-
-  </div>
-
-  {/* BOTTOM */}
-  <div className="footer-bottom">
-
-    <p>
-      © 2026 <span>Smart BloodBank</span>.
-      All rights reserved.
-    </p>
-
-    <p>
-      Saving lives through blood donation ❤️
-    </p>
-
-  </div>
-
+          <div className="footer-col disclaimer-col">
+            <h4>Medical Disclaimer</h4>
+            <p className="medical-disclaimer">
+              🚨 For medical emergencies, contact your nearest hospital or emergency medical service immediately.
+            </p>
+          </div>
+        </div>
+        <div className="footer-bottom">
+          <p>© 2026 Blood Donation Management System. All rights reserved.</p>
+        </div>
       </footer>
-
     </div>
   );
-}
+};
+
+export default Home;
