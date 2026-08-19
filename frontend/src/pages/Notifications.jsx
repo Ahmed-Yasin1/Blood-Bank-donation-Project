@@ -289,6 +289,7 @@ export default function Notifications() {
       `}</style>
     </div>
   )
+<<<<<<< HEAD
 }
 
 /* ─── Styles ─────────────────────────────────────────────────────── */
