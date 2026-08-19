@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createHospital, deleteHospital, getHospitals, updateHospital } from '../api/HospitalApi'
 import { DISTRICTS } from '../constants/districts'
-
+import { FaClock, FaHospital, FaCheckCircle } from "react-icons/fa";
 const initialForm = {
   name: '',
   district: '',
@@ -421,21 +421,27 @@ export default function Hospitals() {
             <p style={styles.statNumber}>{hospitals.length}</p>
             <p style={styles.statLabel}>Partner Hospitals</p>
           </div>
-          <div style={styles.statIcon}>🏥</div>
+          <div style={styles.statIcon}>
+            <FaHospital />
+          </div>
         </div>
         <div style={{...styles.statCard, ...styles.greenGradient}}>
           <div>
             <p style={styles.statNumber}>{hospitals.filter((item) => item.status === 'Active').length}</p>
             <p style={styles.statLabel}>Active</p>
           </div>
-          <div style={styles.statIcon}>✅</div>
+          <div style={styles.statIcon}>
+            <FaCheckCircle />
+          </div>
         </div>
         <div style={{...styles.statCard, ...styles.orangeGradient}}>
           <div>
             <p style={styles.statNumber}>{hospitals.filter((item) => item.status !== 'Active').length}</p>
             <p style={styles.statLabel}>Pending/Inactive</p>
           </div>
-          <div style={styles.statIcon}>⏳</div>
+          <div style={styles.statIcon}>
+            <FaClock />
+          </div>
         </div>
       </div>
 
