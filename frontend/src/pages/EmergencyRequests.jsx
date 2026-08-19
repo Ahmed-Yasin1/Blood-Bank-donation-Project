@@ -3,7 +3,7 @@ import useAuth from '../hooks/useAuth'
 import { createEmergency, deleteEmergency, getEmergencies, updateEmergencyStatus } from '../api/EmergencyApi'
 import { getHospitals } from '../api/HospitalApi'
 import { DISTRICTS } from '../constants/districts'
-
+import { FaSearch, FaClock, FaCheckCircle } from "react-icons/fa";
 const initialForm = {
   hospital: '',
   bloodType: 'O+',
@@ -164,21 +164,27 @@ export default function EmergencyRequests() {
       {/* Stats Cards */}
       <div style={styles.statsContainer}>
         <div style={{...styles.statCard, ...styles.statCardRed}}>
-          <div style={styles.statIcon}>⏳</div>
+          <div style={styles.statIcon}>
+            <FaClock />
+          </div>
           <div style={styles.statInfo}>
             <div style={styles.statLabel}>Pending</div>
             <div style={styles.statValue}>{pendingCount}</div>
           </div>
         </div>
         <div style={{...styles.statCard, ...styles.statCardOrange}}>
-          <div style={styles.statIcon}>🔍</div>
+          <div style={styles.statIcon}>
+            <FaSearch />
+          </div>
           <div style={styles.statInfo}>
             <div style={styles.statLabel}>In Progress</div>
             <div style={styles.statValue}>{inProgressCount}</div>
           </div>
         </div>
         <div style={{...styles.statCard, ...styles.statCardGreen}}>
-          <div style={styles.statIcon}>✅</div>
+          <div style={styles.statIcon}>
+            <FaCheckCircle />
+          </div>
           <div style={styles.statInfo}>
             <div style={styles.statLabel}>Completed</div>
             <div style={styles.statValue}>{completedCount}</div>
