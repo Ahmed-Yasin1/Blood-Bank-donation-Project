@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { DISTRICTS } from '../constants/districts'
 import useAuth from '../hooks/useAuth'
+import { FaTint, FaCheckCircle, FaHourglassHalf, FaMapMarkerAlt, FaUserSlash } from "react-icons/fa";
 import {
   createDonor,
   deleteDonor,
@@ -289,7 +290,7 @@ export default function Donors() {
     statRed: { background: 'linear-gradient(135deg, #ef4444, #b91c1c)' },
     statGreen: { background: 'linear-gradient(135deg, #10b981, #047857)' },
     statOrange: { background: 'linear-gradient(135deg, #f59e0b, #b45309)' },
-    statIconWrapper: { fontSize: '2.5rem', background: 'rgba(255,255,255,0.2)', width: '72px', height: '72px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+    statIconWrapper: { fontSize: '2.5rem', color: 'white', background: 'rgba(255,255,255,0.2)', width: '72px', height: '72px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
     statContent: { display: 'flex', flexDirection: 'column' },
     statValue: { fontSize: '2.25rem', fontWeight: 'bold', margin: 0, lineHeight: 1 },
     statLabel: { fontSize: '1rem', opacity: 0.9, marginTop: '0.25rem' },
@@ -377,7 +378,10 @@ export default function Donors() {
       </style>
 
       <div style={styles.headerContainer}>
-        <h1 style={styles.headerTitle}>{isDonor ? '🩸 My Donor Profile & History' : '🩸 Donor Management'}</h1>
+        <h1 style={styles.headerTitle}>
+          <FaTint color="#dc2626" size={26} />
+          {isDonor ? 'My Donor Profile & History' : 'Donor Management'}
+        </h1>
         {!isDonor && (
           <button style={styles.btnAdd} className="btn-hover" onClick={() => setShowForm((prev) => !prev)}>
             {showForm ? 'Cancel' : '+ Add Donor'}
@@ -388,21 +392,21 @@ export default function Donors() {
       {!isDonor && (
         <div style={styles.statsGrid}>
           <div style={{ ...styles.statCard, ...styles.statRed }}>
-            <div style={styles.statIconWrapper}>🩸</div>
+            <div style={styles.statIconWrapper}><FaTint size={28} /></div>
             <div style={styles.statContent}>
               <p style={styles.statLabel}>Registered Donors</p>
               <h3 style={styles.statValue}>{donors.length}</h3>
             </div>
           </div>
           <div style={{ ...styles.statCard, ...styles.statGreen }}>
-            <div style={styles.statIconWrapper}>✅</div>
+            <div style={styles.statIconWrapper}><FaCheckCircle size={28} /></div>
             <div style={styles.statContent}>
               <p style={styles.statLabel}>Eligible Today</p>
               <h3 style={styles.statValue}>{eligibleCount}</h3>
             </div>
           </div>
           <div style={{ ...styles.statCard, ...styles.statOrange }}>
-            <div style={styles.statIconWrapper}>⏳</div>
+            <div style={styles.statIconWrapper}><FaHourglassHalf size={28} /></div>
             <div style={styles.statContent}>
               <p style={styles.statLabel}>Pending Review</p>
               <h3 style={styles.statValue}>{pendingCount}</h3>
@@ -506,7 +510,7 @@ export default function Donors() {
         </div>
       ) : filteredDonors.length === 0 ? (
         <div style={styles.emptyState}>
-          <div style={styles.emptyIcon}>👤</div>
+          <div style={styles.emptyIcon}><FaUserSlash /></div>
           <h2>No donors found</h2>
           <p>Try adjusting your search filters or add a new donor.</p>
         </div>
@@ -543,7 +547,7 @@ export default function Donors() {
                   </div>
 
                   <div style={styles.locationRow}>
-                    📍 {donor.city}{donor.district ? `, ${donor.district}` : ''}
+                    <FaMapMarkerAlt /> {donor.city}{donor.district ? `, ${donor.district}` : ''}
                   </div>
 
                   <div style={styles.actionButtons}>
