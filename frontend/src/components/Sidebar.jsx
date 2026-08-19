@@ -5,6 +5,7 @@ import useAuth from '../hooks/useAuth'
 import { getHospital } from '../api/HospitalApi'
 
 const navigationLinks = [
+  { to: '/home', label: 'Home Page', icon: '🏠' },
   { to: '/dashboard', label: 'Dashboard', icon: '📊' },
   { to: '/donors', label: 'Donors', icon: '🩸' },
   { to: '/emergency-requests', label: 'Emergency Requests', icon: '🚨' },
@@ -50,11 +51,12 @@ export default function Sidebar() {
 
   const visibleLinks = navigationLinks.filter((link) => {
     if (isDonor) {
-      return link.to === '/notifications' || link.to === '/donors'
+      return link.to === '/home' || link.to === '/notifications' || link.to === '/donors'
     }
 
     if (isHospital) {
       return [
+        '/home',
         '/dashboard',
         '/donors',
         '/emergency-requests',

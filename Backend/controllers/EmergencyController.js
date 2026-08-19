@@ -71,11 +71,15 @@ export const createEmergencyRequest = async (req, res) => {
       matchedDonors: [],
     });
 
-    const matchedDonors = await Donor.find({
+    const matchFilter = {
       bloodGroup: emergencyRequest.bloodType,
-      district: emergencyRequest.location,
       eligibilityStatus: true,
-    }).select("fullName email bloodGroup district eligibilityStatus");
+    };
+    if (emergencyRequest.location !== 'All Districts') {
+      matchFilter.district = emergencyRequest.location;
+    }
+
+    const matchedDonors = await Donor.find(matchFilter).select("fullName email bloodGroup district eligibilityStatus");
 
     const donorIds = matchedDonors.map((donor) => donor._id);
     const updatedStatus = donorIds.length > 0 ? "Matched" : "Searching";
@@ -95,17 +99,29 @@ export const createEmergencyRequest = async (req, res) => {
 
       // Send emails to all matched donors
       const hospitalName = hospitalDocument.name || "a hospital";
+      const hospitalLocation = [hospitalDocument.district, hospitalDocument.address].filter(Boolean).join(', ') || 'Unknown Location';
       const emailPromises = matchedDonors.map((donor) => {
         if (donor.email) {
           return sendEmail({
             email: donor.email,
             subject: `LifeLink Hub: Emergency Blood Request - ${emergencyRequest.bloodType}`,
-            message: `Hello ${donor.fullName},\n\nYou have been matched to an Emergency Blood Request from ${hospitalName}.\n\nBlood Type Needed: ${emergencyRequest.bloodType}\nUrgency: ${emergencyRequest.urgency}\nLocation: ${emergencyRequest.location}\n\nPlease log in to your LifeLink Hub account and respond as soon as possible.\n\nThank you for being a hero!\nLifeLink Hub Team`,
+            message: `Hello ${donor.fullName},\n\nYou have been matched to an Emergency Blood Request from ${hospitalName}.\n\nBlood Type Needed: ${emergencyRequest.bloodType}\nUrgency: ${emergencyRequest.urgency}\nHospital Location: ${hospitalLocation}\n\nPlease log in to your LifeLink Hub account and respond as soon as possible.\n\nThank you for being a hero!\nLifeLink Hub Team`,
           });
         }
       });
       await Promise.all(emailPromises);
     }
+
+    // System Notification for Admin and Hospital
+    const hospitalNameStr = hospitalDocument.name || "a hospital";
+    await Notification.create({
+      recipient: null, // System-wide notification (for Admins)
+      sender: emergencyRequest.hospital,
+      title: "New Emergency Request Created",
+      message: `${hospitalNameStr} created an emergency request for ${unitsRequired} units of ${emergencyRequest.bloodType} (${urgency} urgency).`,
+      type: "System",
+      relatedEmergency: emergencyRequest._id,
+    });
 
     emergencyRequest = await EmergencyRequest.findByIdAndUpdate(
       emergencyRequest._id,
@@ -452,11 +468,15 @@ export const smartMatching = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Access denied' })
     }
 
-    const matchedDonors = await Donor.find({
+    const matchFilter = {
       bloodGroup: emergency.bloodType,
-      district: emergency.location,
       eligibilityStatus: true,
-    }).select("fullName email bloodGroup district eligibilityStatus");
+    };
+    if (emergency.location !== 'All Districts') {
+      matchFilter.district = emergency.location;
+    }
+
+    const matchedDonors = await Donor.find(matchFilter).select("fullName email bloodGroup district eligibilityStatus");
 
     if (matchedDonors.length === 0) {
       const updatedEmergency = await EmergencyRequest.findByIdAndUpdate(
@@ -500,12 +520,13 @@ export const smartMatching = async (req, res) => {
 
     // Send emails to all matched donors
     const hospitalName = updatedEmergency.hospital?.name || updatedEmergency.hospital?.username || "a hospital";
+    const hospitalLocation = [updatedEmergency.hospital?.district, updatedEmergency.hospital?.address].filter(Boolean).join(', ') || 'Unknown Location';
     const emailPromises = matchedDonors.map((donor) => {
       if (donor.email) {
         return sendEmail({
           email: donor.email,
           subject: `LifeLink Hub: Emergency Blood Request - ${emergency.bloodType}`,
-          message: `Hello ${donor.fullName},\n\nYou have been matched to an Emergency Blood Request from ${hospitalName}.\n\nBlood Type Needed: ${emergency.bloodType}\nUrgency: ${emergency.urgency}\nLocation: ${emergency.location}\n\nPlease log in to your LifeLink Hub account and respond as soon as possible.\n\nThank you for being a hero!\nLifeLink Hub Team`,
+          message: `Hello ${donor.fullName},\n\nYou have been matched to an Emergency Blood Request from ${hospitalName}.\n\nBlood Type Needed: ${emergency.bloodType}\nUrgency: ${emergency.urgency}\nHospital Location: ${hospitalLocation}\n\nPlease log in to your LifeLink Hub account and respond as soon as possible.\n\nThank you for being a hero!\nLifeLink Hub Team`,
         });
       }
     });
@@ -521,6 +542,36 @@ export const smartMatching = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Server error while performing smart matching",
+    });
+  }
+};
+
+/**
+ * Get all active emergency requests for today (Public)
+ * @route GET /api/emergency/public/today
+ * @access Public
+ */
+export const getPublicEmergencyRequestsToday = async (req, res) => {
+  try {
+    // Fetch all active emergency requests (Pending, Searching, Matched)
+    const emergencies = await EmergencyRequest.find({
+      status: { $nin: ['Completed', 'Cancelled'] }
+    })
+      .populate("hospital", "name username district email phone address")
+      .select("-matchedDonors -donorResponses") // Exclude sensitive donor information
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      message: "Public active emergency requests retrieved successfully",
+      count: emergencies.length,
+      data: emergencies,
+    });
+  } catch (error) {
+    console.error("Error fetching public emergency requests:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while fetching public emergency requests",
     });
   }
 };

@@ -34,7 +34,7 @@ const EmergencyRequestSchema = new mongoose.Schema(
     location: {
       type: String,
       required: [true, "Location is required"],
-      enum: DISTRICTS,
+      enum: [...DISTRICTS, 'All Districts'],
       trim: true,
     },
     contactPerson: {
@@ -88,7 +88,7 @@ const EmergencyRequestSchema = new mongoose.Schema(
   }
 );
 
-// Index for faster queries
+
 EmergencyRequestSchema.index({ status: 1, urgency: 1 });
 EmergencyRequestSchema.index({ bloodType: 1, location: 1 });
 
