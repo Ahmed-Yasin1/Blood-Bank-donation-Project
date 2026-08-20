@@ -5,6 +5,7 @@ import useAuth from '../hooks/useAuth'
 import { getHospital } from '../api/HospitalApi'
 
 const navigationLinks = [
+  { to: '/home', label: 'Home Page', icon: '🏠' },
   { to: '/dashboard', label: 'Dashboard', icon: '📊' },
   { to: '/donors', label: 'Donors', icon: '🩸' },
   { to: '/emergency-requests', label: 'Emergency Requests', icon: '🚨' },
@@ -16,7 +17,7 @@ const navigationLinks = [
 ]
 
 export default function Sidebar() {
-  const { sidebarOpen } = useAppContext()
+  const { sidebarOpen, closeSidebar } = useAppContext()
   const navigate = useNavigate()
   const { user: currentUser } = useAuth()
   const [hospitalProfile, setHospitalProfile] = useState(null)
@@ -30,6 +31,10 @@ export default function Sidebar() {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     navigate('/login', { replace: true })
+  }
+
+  const handleNavigation = () => {
+    if (window.innerWidth < 768) closeSidebar()
   }
 
   useEffect(() => {
@@ -50,11 +55,12 @@ export default function Sidebar() {
 
   const visibleLinks = navigationLinks.filter((link) => {
     if (isDonor) {
-      return link.to === '/notifications' || link.to === '/donors'
+      return link.to === '/home' || link.to === '/notifications' || link.to === '/donors'
     }
 
     if (isHospital) {
       return [
+        '/home',
         '/dashboard',
         '/donors',
         '/emergency-requests',
@@ -78,7 +84,14 @@ export default function Sidebar() {
   const initial = (currentUser?.name || currentUser?.username || currentUser?.email || 'U')[0].toUpperCase()
 
   return (
-    <aside style={s.sidebar}>
+    <>
+      <button
+        type="button"
+        className="sidebar-backdrop"
+        onClick={closeSidebar}
+        aria-label="Close navigation"
+      />
+      <aside className="app-sidebar" style={s.sidebar}>
       
       {/* App Branding Header */}
       <div style={s.brandHeader}>
@@ -98,6 +111,7 @@ export default function Sidebar() {
           <NavLink
             key={link.to}
             to={link.to}
+            onClick={handleNavigation}
             style={({ isActive }) => ({
               ...s.navItem,
               ...(isActive ? s.navItemActive : {}),
@@ -148,7 +162,8 @@ export default function Sidebar() {
           transform: translateX(4px);
         }
       `}</style>
-    </aside>
+      </aside>
+    </>
   )
 }
 

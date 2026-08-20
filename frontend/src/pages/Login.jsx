@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import useAuth from '../hooks/useAuth'
 
 // Map HTTP status / error messages to friendly text
@@ -86,6 +86,11 @@ export default function Login() {
 
         {/* Right Form Panel */}
         <div style={s.rightPanel}>
+          <div style={{ marginBottom: 20 }}>
+            <Link to="/home" style={{ textDecoration: 'none', color: '#6b7280', fontSize: 13, fontWeight: 600, display: 'inline-block', padding: '4px 8px', borderRadius: '4px', background: '#f3f4f6' }}>
+              ← Back to Home
+            </Link>
+          </div>
           <div style={s.formHeader}>
             <div style={s.welcomeTag}>WELCOME BACK</div>
             <h2 style={s.formTitle}>Sign in to your account</h2>

@@ -19,23 +19,28 @@ export default function Navbar() {
             <span style={s.hamburgerIcon}>☰</span>
           </button>
 
-          <NavLink to="/dashboard" style={s.brandLink}>
+          <NavLink to="/dashboard" className="navbar-brand-link" style={s.brandLink}>
             <div style={s.brandIconWrap}>
               <span>🩸</span>
             </div>
             <div style={s.brandTextWrap}>
               <span style={s.brandTitle}>LifeLink Hub</span>
-              <span style={s.brandSubtitle}>Blood Donation System</span>
+              <span className="navbar-brand-subtitle" style={s.brandSubtitle}>Blood Donation System</span>
             </div>
           </NavLink>
         </div>
 
-        {/* Right Side: Status Badge */}
+        {/* Right Side: Home Button & Status Badge */}
         <div style={s.rightSection}>
+          <NavLink to="/home" className="navbar-home-link" style={s.homeBtn}>
+            <span style={{ fontSize: 14 }}>🏠</span>
+            <span className="navbar-home-text" style={s.homeBtnText}>Home</span>
+          </NavLink>
+
           {/* System Live Pill */}
           <div style={s.liveBadge}>
             <span style={s.livePulseDot} />
-            <span style={s.liveText}>SYSTEM LIVE</span>
+            <span className="navbar-live-text" style={s.liveText}>SYSTEM LIVE</span>
           </div>
         </div>
 
@@ -134,6 +139,23 @@ const s = {
     display: 'flex',
     alignItems: 'center',
     gap: 16,
+  },
+  homeBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    background: 'rgba(255, 255, 255, 0.15)',
+    border: '1px solid rgba(255, 255, 255, 0.25)',
+    color: '#ffffff',
+    textDecoration: 'none',
+    padding: '6px 14px',
+    borderRadius: 20,
+    fontSize: 12,
+    fontWeight: 700,
+    transition: 'all 0.2s',
+  },
+  homeBtnText: {
+    letterSpacing: '0.02em',
   },
   liveBadge: {
     display: 'flex',

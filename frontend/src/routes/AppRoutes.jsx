@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import MainLayout from '../components/MainLayout'
 import useAuth from '../hooks/useAuth'
+import Home from '../pages/Home'
 import Dashboard from '../pages/Dashboard'
 import Donors from '../pages/Donors'
 import EmergencyRequests from '../pages/EmergencyRequests'
@@ -23,25 +24,7 @@ const privatePages = [
 	{ path: 'notifications', label: 'Notifications', element: <Notifications />, allowedRoles: ['admin', 'hospital', 'donor'] },
 	{ path: 'reports', label: 'Reports', element: <Reports />, allowedRoles: ['admin', 'hospital'] },
 	{ path: 'users', label: 'Users', element: <Users />, allowedRoles: ['admin'] },
-	{ path: 'aqurxi', label: 'Aad U Qurxi', element: <Dashboard />, allowedRoles: ['admin'] },
 ]
-
-function RouteScreen({ title, isPublic = false }) {
-	return (
-		<main className="container-fluid py-4">
-			<div className="card shadow-sm border-0">
-				<div className="card-body">
-					<h1 className="h3 mb-3 text-danger">{title}</h1>
-					{isPublic ? (
-						<p className="text-muted">Sign in to access the blood management system.</p>
-					) : (
-						<p className="text-muted">This section is ready for its management tools.</p>
-					)}
-				</div>
-			</div>
-		</main>
-	)
-}
 
 function RoleProtectedRoute({ children, allowedRoles = [] }) {
 	const { user } = useAuth()
@@ -56,10 +39,11 @@ function RoleProtectedRoute({ children, allowedRoles = [] }) {
 export default function AppRoutes() {
 	return (
 		<Routes>
+			<Route path="/" element={<Navigate to="/home" replace />} />
+			<Route path="/home" element={<Home />} />
 			<Route path="/login" element={<Login />} />
 			<Route element={<PrivateRoutes />}>
 				<Route element={<MainLayout />}>
-					<Route index element={<Navigate to="/notifications" replace />} />
 					{privatePages.map((page) => (
 						<Route
 							key={page.path}
@@ -73,7 +57,8 @@ export default function AppRoutes() {
 					))}
 				</Route>
 			</Route>
-			<Route path="*" element={<Navigate to="/login" replace />} />
+			<Route path="*" element={<Navigate to="/home" replace />} />
 		</Routes>
 	)
 }
+

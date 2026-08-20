@@ -10,6 +10,7 @@ import {
   updateEmergencyStatus,
   respondToEmergency,
   smartMatching,
+  getPublicEmergencyRequestsToday,
 } from "../controllers/EmergencyController.js";
 
 const router = express.Router();
@@ -18,6 +19,10 @@ const router = express.Router();
  * Emergency Request Routes
  * Base URL: /api/emergency
  */
+
+// GET /api/emergency/public/today - Get active emergency requests for today
+// Public access
+router.get("/public/today", getPublicEmergencyRequestsToday);
 
 // POST /api/emergency - Create emergency request
 // Protected: Hospital/Admin only

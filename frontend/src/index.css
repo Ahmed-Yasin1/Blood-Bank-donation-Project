@@ -21,6 +21,71 @@ body {
 	margin: 0;
 	background: #f5f7fb;
 	color: #182230;
+	overflow-x: hidden;
+}
+
+.app-body {
+	min-width: 0;
+}
+
+.app-main {
+	min-width: 0;
+	overflow-x: hidden;
+}
+
+.app-main > * {
+	max-width: 100%;
+}
+
+.table-responsive {
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+}
+
+.sidebar-backdrop {
+	display: none;
+}
+
+@media (max-width: 767.98px) {
+	.app-main {
+		padding: 12px !important;
+	}
+
+	.app-sidebar {
+		position: fixed;
+		top: 60px;
+		bottom: 0;
+		left: 0;
+		z-index: 1100;
+		width: min(290px, calc(100vw - 48px)) !important;
+		min-width: 0 !important;
+		min-height: 0 !important;
+		overflow-y: auto;
+		box-shadow: 12px 0 30px rgba(15, 23, 42, 0.18) !important;
+	}
+
+	.sidebar-backdrop {
+		display: block;
+		position: fixed;
+		inset: 60px 0 0;
+		z-index: 1050;
+		width: 100%;
+		border: 0;
+		padding: 0;
+		background: rgba(15, 23, 42, 0.42);
+	}
+}
+
+@media (max-width: 480px) {
+	.navbar-brand-subtitle,
+	.navbar-home-text,
+	.navbar-live-text {
+		display: none;
+	}
+
+	.navbar-brand-link {
+		gap: 0 !important;
+	}
 }
 
 button,

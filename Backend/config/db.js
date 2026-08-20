@@ -4,7 +4,7 @@ import { MongoMemoryServer } from 'mongodb-memory-server'
 let mongoServer
 
 const connectDB = async () => {
-  const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/blood-bank'
+  const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/blood_donation_db'
   const useMemoryFallback = process.env.USE_IN_MEMORY_DB === 'true'
 
   try {

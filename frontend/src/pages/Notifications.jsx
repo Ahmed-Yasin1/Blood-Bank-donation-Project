@@ -219,11 +219,11 @@ export default function Notifications() {
 
                   {/* Reader / Recipient Info */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
-                    {(isAdmin || isHospital || n.recipient) && (
+                    {(n.recipient) && (
                       <div style={styles.metaLine}>
-                        👤 <strong>Reader / Recipient:</strong> 
+                        👤 <strong>Donor:</strong> 
                         <span style={{ fontWeight: 600, color: '#111827' }}>
-                          {n.recipient?.fullName || n.recipient?.name || n.recipient?.username || n.recipient?.email || 'System User'}
+                          {n.recipient?.fullName || n.recipient?.name || n.recipient?.username || n.recipient?.email || '—'}
                         </span>
                       </div>
                     )}
@@ -232,6 +232,16 @@ export default function Notifications() {
                         🏥 <strong>Hospital:</strong> <span>{hospital}</span>
                       </div>
                     )}
+                    {/* Hospital location */}
+                    {(() => {
+                      const h = n.relatedEmergency?.hospital
+                      const loc = h ? [h.district, h.address].filter(Boolean).join(', ') : null
+                      return loc ? (
+                        <div style={styles.metaLine}>
+                          📍 <strong>Hospital Location:</strong> <span>{loc}</span>
+                        </div>
+                      ) : null
+                    })()}
                     <div style={styles.metaLine}>
                       📖 <strong>Read Status:</strong> 
                       <span style={{
@@ -243,7 +253,7 @@ export default function Notifications() {
                         padding: '1px 8px',
                         fontSize: 12,
                       }}>
-                        {n.isRead ? `✓ Read by ${n.recipient?.fullName || 'Reader'}` : `⏳ Unread by ${n.recipient?.fullName || 'Reader'}`}
+                        {n.isRead ? `✓ Read` : `⏳ Unread`}
                       </span>
                     </div>
                   </div>

@@ -34,7 +34,7 @@ const EmergencyRequestSchema = new mongoose.Schema(
     location: {
       type: String,
       required: [true, "Location is required"],
-      enum: DISTRICTS,
+      enum: [...DISTRICTS, 'All Districts'],
       trim: true,
     },
     contactPerson: {
