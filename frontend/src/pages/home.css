@@ -1,4 +1,5 @@
 /* home.css - Medical Professional Healthcare Design */
+
 :root {
   --primary-red: #d32f2f;
   --primary-red-hover: #b71c1c;
@@ -188,6 +189,7 @@ html {
   border-radius: 20px;
   position: relative;
   box-shadow: var(--shadow-md);
+
   display: flex;
   align-items: center;
   justify-content: center;
@@ -296,7 +298,7 @@ html {
 
 .section-title {
   text-align: center;
-  margin-bottom: 3.5rem;
+  margin-bottom: 3rem;
 }
 
 .section-title h2 {
@@ -308,13 +310,6 @@ html {
 .section-title p {
   color: var(--medium-gray);
   font-size: 1.1rem;
-}
-
-.section-title .red-accent {
-  color: var(--primary-red);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
 }
 
 /* 4. Emergency Requests TODAY */
@@ -457,7 +452,9 @@ html {
   color: white;
 }
 
-.loading-state, .no-emergencies-box, .no-data-box {
+.loading-state,
+.no-emergencies-box,
+.no-data-box {
   text-align: center;
   padding: 3rem;
   background: var(--light-gray);
@@ -841,12 +838,15 @@ html {
     text-align: center;
     padding-top: 8rem;
   }
+
   .hero-content p {
     margin: 0 auto 2.5rem;
   }
+
   .hero-buttons {
     justify-content: center;
   }
+
   .badge-top,
   .badge-bottom {
     display: none;
@@ -861,13 +861,16 @@ html {
   .nav-links {
     display: none;
   }
+
   .hero-content h1 {
     font-size: 2.8rem;
   }
+
   .booking-flow {
     flex-direction: column;
     gap: 0.5rem;
   }
+
   .flow-arrow {
     transform: rotate(90deg);
   }
@@ -876,6 +879,7 @@ html {
     grid-template-columns: 1fr;
     gap: 2rem;
   }
+
   /* Smaller blood icon on mobile */
   .medical-hero-image::before {
     width: 150px;
