@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import useAuth from '../hooks/useAuth'
 import { addBlood, deleteInventory, getInventory, updateInventory } from '../api/InventoryApi'
 import { getHospitals } from '../api/HospitalApi'
+import { FaTint , FaTimesCircle, FaCheckCircle, FaExclamationTriangle, FaClock } from "react-icons/fa";
 
 const initialForm = {
   hospital: '',
@@ -212,28 +213,28 @@ export default function Inventory() {
           <h3 style={styles.statTitle}>Total Units</h3>
           <div style={styles.statValue}>
             <span>{totalUnits}</span>
-            <span style={styles.statIcon}>🩸</span>
+            <span style={styles.statIcon}><FaTint /></span>
           </div>
         </div>
         <div style={{...styles.statCard, background: 'linear-gradient(135deg, #f97316, #ea580c)'}}>
           <h3 style={styles.statTitle}>Low Stock</h3>
           <div style={styles.statValue}>
             <span>{lowStockCount}</span>
-            <span style={styles.statIcon}>⚠️</span>
+            <span style={styles.statIcon}><FaExclamationTriangle /></span>
           </div>
         </div>
         <div style={{...styles.statCard, background: 'linear-gradient(135deg, #f59e0b, #d97706)'}}>
           <h3 style={styles.statTitle}>Expiring Soon</h3>
           <div style={styles.statValue}>
             <span>{expiringSoonCount}</span>
-            <span style={styles.statIcon}>⏳</span>
+            <span style={styles.statIcon}><FaClock /></span>
           </div>
         </div>
         <div style={{...styles.statCard, background: 'linear-gradient(135deg, #ef4444, #dc2626)'}}>
           <h3 style={styles.statTitle}>Expired</h3>
           <div style={styles.statValue}>
             <span>{expiredCount}</span>
-            <span style={styles.statIcon}>🚫</span>
+            <span style={styles.statIcon}><FaTimesCircle /></span>
           </div>
         </div>
       </div>

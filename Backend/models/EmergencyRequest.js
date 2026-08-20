@@ -88,7 +88,7 @@ const EmergencyRequestSchema = new mongoose.Schema(
   }
 );
 
-// Index for faster queries
+
 EmergencyRequestSchema.index({ status: 1, urgency: 1 });
 EmergencyRequestSchema.index({ bloodType: 1, location: 1 });
 
