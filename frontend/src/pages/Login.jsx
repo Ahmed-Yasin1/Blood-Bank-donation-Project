@@ -117,8 +117,8 @@ export default function Login() {
                   name="email"
                   value={form.email}
                   onChange={handleChange}
-                  placeholder="admin@bloodbank.local"
                   required
+                  placeholder="Enter your email"
                   autoComplete="email"
                 />
               </div>
@@ -145,9 +145,8 @@ export default function Login() {
                   name="password"
                   value={form.password}
                   onChange={handleChange}
-                  placeholder="••••••••"
                   required
-                  autoComplete="current-password"
+                  placeholder="Enter your password"
                 />
               </div>
             </div>
